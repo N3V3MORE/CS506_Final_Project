@@ -9,6 +9,9 @@ from datasets import load_dataset, Audio
 from jiwer import wer
 from itertools import islice
 
+MODEL_NAME = "base.en"
+NUM_CLIPS = 50
+
 # 1. Load LibriSpeech dev-other
 dataset = load_dataset(
     "openslr/librispeech_asr",
@@ -22,7 +25,7 @@ dataset = dataset.cast_column(
 )
 
 # 2. Load Whisper once
-model = whisper.load_model("tiny.en")
+model = whisper.load_model(MODEL_NAME)
 
 # 3. Normalize text
 def normalize(text):
@@ -31,7 +34,6 @@ def normalize(text):
     return " ".join(text.split())
 
 # 4. Process recordings
-NUM_CLIPS = 20
 results = []
 
 for i, sample in enumerate(islice(dataset, NUM_CLIPS)):
@@ -83,13 +85,13 @@ for i, sample in enumerate(islice(dataset, NUM_CLIPS)):
 # 5. Save results
 df = pd.DataFrame(results)
 
-df.to_csv(
-    "dev_other_results.csv",
+"""df.to_csv(
+    f"dev_other_results_{MODEL_NAME}.csv",
     index=False
-)
+)"""
 
 print("\n--- SUMMARY ---")
 print("Total clips:", len(df))
 print("Average clip WER:", df["wer"].mean())
 print("Clips with errors:", (df["wer"] > 0).sum())
-print("Results saved!")
+"""print("Results saved!")"""
