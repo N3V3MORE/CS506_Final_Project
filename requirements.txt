@@ -5,7 +5,6 @@ python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install datasets soundfile openai-whisper jiwer pandas
 python -c "import datasets, soundfile, whisper, jiwer, pandas; print('All libraries installed successfully!')"
-python run_baseline.py
 python -m pip install cmudict
 python -m pip install g2p-en
 python -m nltk.downloader averaged_perceptron_tagger_eng cmudict
