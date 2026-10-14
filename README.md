@@ -13,13 +13,13 @@ We will first perform exploratory analysis to identify relationships between pho
 - Build the initial data-processing pipeline.
 - Generate ASR transcripts and calculate WER for each audio clip.
 - Convert ground-truth transcripts into phoneme sequences using CMUdict.
-### 🔵 Mid November
 - Complete phoneme-based feature engineering.
 - Perform exploratory data analysis and create visualizations showing relationships between phonetic features and WER.
+### 🔵 Mid November
 - Train baseline and more advanced regression models.
 - Begin evaluating model performance and identifying important features.
-### 🔵 End of Semester
 - Finalize model evaluation and interpretation.
+### 🔵 End of Semester
 - Compare results across models or ASR systems if time permits.
 - Complete final visualizations and summarize findings and limitations.
 - Clean the GitHub repository and prepare the final report and presentation.
