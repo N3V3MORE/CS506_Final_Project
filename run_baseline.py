@@ -8,6 +8,7 @@ import whisper
 from datasets import load_dataset, Audio
 from jiwer import wer
 from itertools import islice
+import cmudict
 
 
 # ========== EXPERIMENT SETTINGS ==========
@@ -116,3 +117,49 @@ print("Total clips:", len(df))
 print("Average clip WER:", df["wer"].mean())
 print("Clips with errors:", (df["wer"] > 0).sum())
 """print("Results saved!")"""
+
+# 6. Extract phonemes from reference transcripts
+cmu = cmudict.dict()
+def extract_phonemes(text):
+    words = re.findall(r"[a-z]+(?:'[a-z]+)?", text.lower())
+
+    phonemes = []
+    unknown_words = []
+
+    for word in words:
+        if word in cmu:
+            pronunciation = cmu[word][0]
+
+            for phone in pronunciation:
+                phone = re.sub(r"\d", "", phone)
+                phonemes.append(phone)
+        else:
+            unknown_words.append(word)
+
+    return phonemes, unknown_words
+
+
+# Apply phoneme extraction to every clip
+phoneme_results = df["reference_text"].apply(extract_phonemes)
+
+df["phonemes"] = phoneme_results.apply(
+    lambda x: " ".join(x[0])
+)
+
+df["unknown_words"] = phoneme_results.apply(
+    lambda x: ", ".join(x[1])
+)
+
+df["num_phonemes"] = phoneme_results.apply(
+    lambda x: len(x[0])
+)
+
+# Save the updated dataset
+"""df.to_csv(
+    f"{DATASET_NAME}_{MODEL_NAME}_phonemes.csv",
+    index=False
+)"""
+
+print("\n--- PHONEME EXTRACTION ---")
+print(df[["reference_text", "phonemes", "wer"]].head())
+print("Clips with unknown words:", (df["unknown_words"] != "").sum())
