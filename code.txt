@@ -1,7 +1,8 @@
 git clone https://github.com/eshaanagarwal06/CS506_Final_Project.git
 cd CS506_Final_Project
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+On Windows: .\.venv\Scripts\Activate.ps1
+On Mac: source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install datasets soundfile openai-whisper jiwer pandas
 python -c "import datasets, soundfile, whisper, jiwer, pandas; print('All libraries installed successfully!')"
