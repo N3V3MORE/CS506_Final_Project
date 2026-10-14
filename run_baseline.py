@@ -9,20 +9,41 @@ from datasets import load_dataset, Audio
 from jiwer import wer
 from itertools import islice
 
+
+# ========== EXPERIMENT SETTINGS ==========
+
+DATASET_NAME = "dev-other"
 MODEL_NAME = "base.en"
 NUM_CLIPS = 50
 
-# 1. Load LibriSpeech dev-other
+# Available LibriSpeech datasets
+DATASET_OPTIONS = {
+    "dev-clean": ("clean", "validation"),
+    "dev-other": ("other", "validation"),
+    "test-clean": ("clean", "test"),
+    "test-other": ("other", "test")
+}
+
+
+# 1. Load the selected LibriSpeech dataset
+
+if DATASET_NAME not in DATASET_OPTIONS:
+    raise ValueError(f"Invalid dataset: {DATASET_NAME}")
+
+config, split = DATASET_OPTIONS[DATASET_NAME]
+
 dataset = load_dataset(
     "openslr/librispeech_asr",
-    "other",
-    split="validation",
+    config,
+    split=split,
     streaming=True
 )
 
 dataset = dataset.cast_column(
     "audio", Audio(decode=False)
 )
+
+print(f"Using dataset: {DATASET_NAME}")
 
 # 2. Load Whisper once
 model = whisper.load_model(MODEL_NAME)
