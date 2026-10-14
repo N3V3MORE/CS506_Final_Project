@@ -107,16 +107,16 @@ for i, sample in enumerate(islice(dataset, NUM_CLIPS)):
 # 5. Save results
 df = pd.DataFrame(results)
 
-"""df.to_csv(
+df.to_csv(
     f"dev_other_results_{MODEL_NAME}.csv",
     index=False
-)"""
+)
 
 print("\n--- SUMMARY ---")
 print("Total clips:", len(df))
 print("Average clip WER:", df["wer"].mean())
 print("Clips with errors:", (df["wer"] > 0).sum())
-"""print("Results saved!")"""
+print("Results saved!")
 
 # 6. Extract phonemes from reference transcripts
 cmu = cmudict.dict()
@@ -155,10 +155,10 @@ df["num_phonemes"] = phoneme_results.apply(
 )
 
 # Save the updated dataset
-"""df.to_csv(
+df.to_csv(
     f"{DATASET_NAME}_{MODEL_NAME}_phonemes.csv",
     index=False
-)"""
+)
 
 print("\n--- PHONEME EXTRACTION ---")
 print(df[["reference_text", "phonemes", "wer"]].head())
