@@ -98,3 +98,43 @@ Before training models, we will examine how transcription errors vary with diffe
 - [JiWER](https://github.com/jitsi/jiwer) – Python package for calculating Word Error Rate (WER) and other ASR evaluation metrics.
 - [OpenAI Whisper](https://github.com/openai/whisper) – Automatic speech recognition model that can be used to generate predicted transcripts.
 - [Mozilla Common Voice](https://commonvoice.mozilla.org/datasets) – Large crowdsourced speech dataset that could be used as an extension for testing more diverse speakers and accents.
+
+## Setup and usage
+
+Clone the repository and create a Python environment:
+
+```powershell
+git clone https://github.com/eshaanagarwal06/CS506_Final_Project.git
+cd CS506_Final_Project
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+On macOS/Linux, activate with `source .venv/bin/activate` instead. Then install the packages and the NLTK resources used by phoneme completion:
+
+```sh
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m nltk.downloader averaged_perceptron_tagger_eng cmudict
+```
+
+Run the baseline, then fill in pronunciations missing from CMUdict:
+
+```sh
+python run_baseline.py
+python complete_phonemes
+```
+
+The defaults are OpenAI Whisper `base.en` and the first 50 `dev-other` clips. Change `DATASET_NAME`, `MODEL_NAME`, or `NUM_CLIPS` at the top of `run_baseline.py`. If you change the dataset or model, update `INPUT_FILE` in `complete_phonemes` to match.
+
+Generated files go into `outputs/` beside the scripts, regardless of the working directory:
+
+- Transcriptions: `<dataset>_results_<model>.csv`, such as `dev-other_results_base.en.csv`.
+- CMUdict pronunciations: `<dataset>_<model>_phonemes.csv`.
+- Completed pronunciations: the input filename with `_complete` added before `.csv`.
+
+Each successful transcription is saved immediately. Rerunning skips saved audio IDs and retries failed clips. Whisper loads only when an unfinished clip needs transcription. An incompatible checkpoint header stops the run.
+
+For the default dataset and model, a missing or empty checkpoint is seeded from the uploaded `dev_other_results_base.en.csv`. The original uploaded CSVs are left unchanged. Other dataset/model combinations use separate checkpoints. If you change transcription or scoring settings beyond those filenames, move the old checkpoint aside before rerunning.
+
+The CMUdict file is rebuilt from saved transcriptions. Completion refuses to overwrite an existing output; move that output aside before rerunning it.
