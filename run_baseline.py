@@ -5,6 +5,7 @@ import re
 import pandas as pd
 import soundfile as sf
 import whisper
+from whisper.normalizers import EnglishTextNormalizer
 from datasets import load_dataset, Audio
 from jiwer import wer
 from itertools import islice
@@ -50,10 +51,13 @@ print(f"Using dataset: {DATASET_NAME}")
 model = whisper.load_model(MODEL_NAME)
 
 # 3. Normalize text
+# Whisper's normalizer makes "FIFTEEN" and "15" (or "MR" and "Mr.") compare equal
+english_normalizer = EnglishTextNormalizer()
+
 def normalize(text):
-    text = text.lower()
-    text = re.sub(r"[^\w\s]", "", text)
-    return " ".join(text.split())
+    # LibriSpeech has no hyphens ("RELISTED"), so join Whisper's "re-listed"
+    text = re.sub(r"(?<=[A-Za-z])-(?=[A-Za-z])", "", text)
+    return english_normalizer(text)
 
 # 4. Process recordings
 results = []
