@@ -31,10 +31,10 @@ RESULT_COLUMNS = [
 ]
 
 
-def normalize(text):
-    text = text.lower()
-    text = re.sub(r"[^\w\s]", "", text)
-    return " ".join(text.split())
+def normalize(text, english_normalizer):
+    # LibriSpeech has no hyphens ("RELISTED"), so join Whisper's "re-listed"
+    text = re.sub(r"(?<=[A-Za-z])-(?=[A-Za-z])", "", text)
+    return english_normalizer(text)
 
 
 def extract_phonemes(text, cmu):
@@ -82,11 +82,14 @@ def main():
     import pandas as pd
     import soundfile as sf
     import whisper
+    from whisper.normalizers import EnglishTextNormalizer
     from datasets import load_dataset, Audio
     from jiwer import wer
 
     if DATASET_NAME not in DATASET_OPTIONS:
         raise ValueError(f"Invalid dataset: {DATASET_NAME}")
+
+    english_normalizer = EnglishTextNormalizer()
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     results_file = OUTPUT_DIR / f"{DATASET_NAME}_results_{MODEL_NAME}.csv"
@@ -161,7 +164,10 @@ def main():
                     fp16=False
                 )["text"]
 
-                error = wer(normalize(reference), normalize(prediction))
+                error = wer(
+                    normalize(reference, english_normalizer),
+                    normalize(prediction, english_normalizer)
+                )
 
                 row = {
                     "audio_id": audio_id,
