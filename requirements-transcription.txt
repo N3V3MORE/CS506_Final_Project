@@ -1,0 +1,7 @@
+# Windows/Python 3.11 GPU setup for the RTX 5060 Ti.
+# The PyTorch wheel includes CUDA/cuDNN runtimes; an NVIDIA driver is required.
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0+cu128
+openai-whisper==20250625
+soundfile==0.14.0
+jiwer==4.0.0
