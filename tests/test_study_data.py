@@ -1,6 +1,7 @@
 import io
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from study_data import RangeFile, download_budget, estimate_audio_bytes, selected_groups
 
@@ -33,6 +34,16 @@ class RangeTests(unittest.TestCase):
                  RangeFile("https://example.invalid", 10, download_budget(10)) as remote:
                 with self.assertRaises(ValueError):
                     remote.read(4)
+
+    def test_rate_limit_stops_other_shard_requests(self):
+        budget = download_budget(100)
+        error = HTTPError("https://example.invalid", 429, "rate limited", {"Retry-After": "90"}, None)
+        with patch("study_data.urlopen", side_effect=error) as request:
+            with self.assertRaisesRegex(RuntimeError, "Retry-After: 90"):
+                RangeFile("https://example.invalid", 10, budget).read(4)
+            with self.assertRaisesRegex(RuntimeError, "previous Parquet request failed"):
+                RangeFile("https://example.invalid/other", 10, budget).read(4)
+            self.assertEqual(request.call_count, 1)
 
     def test_audio_plan_counts_each_group_once_and_checks_reference(self):
         clips = [{"audio_id": f"1-2-{i}", "speaker_id": "1", "chapter_id": "2",

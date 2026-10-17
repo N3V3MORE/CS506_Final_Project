@@ -15,6 +15,7 @@ import re
 from threading import Lock
 from urllib.parse import quote
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 
 from select_clips import DATASET_OPTIONS
 
@@ -52,18 +53,29 @@ class RangeFile(io.RawIOBase):
         if length > 64 * 1024 ** 2:
             raise ValueError("Parquet range exceeds the 64 MiB request limit.")
         with self.budget["lock"]:
+            if self.budget.get("stopped"):
+                raise RuntimeError("A previous Parquet request failed; remaining requests stopped.")
             if self.budget["used"] + length > self.budget["limit"]:
                 raise ValueError("Parquet download byte budget exceeded.")
             self.budget["used"] += length
         start, end = self.position, self.position + length - 1
         request = Request(self.url, headers={"Range": f"bytes={start}-{end}"})
-        with urlopen(request, timeout=30) as response:
-            expected = f"bytes {start}-{end}/{self.size}"
-            if response.status != 206 or response.headers.get("Content-Range") != expected:
-                raise ValueError("Server did not honor the exact HTTP byte range; download stopped.")
-            data = response.read(length + 1)
-        if len(data) != length:
-            raise ValueError("Parquet range response length mismatch.")
+        try:
+            with urlopen(request, timeout=30) as response:
+                expected = f"bytes {start}-{end}/{self.size}"
+                if response.status != 206 or response.headers.get("Content-Range") != expected:
+                    raise ValueError("Server did not honor the exact HTTP byte range; download stopped.")
+                data = response.read(length + 1)
+            if len(data) != length:
+                raise ValueError("Parquet range response length mismatch.")
+        except Exception as error:
+            with self.budget["lock"]:
+                self.budget["stopped"] = True
+            if isinstance(error, HTTPError) and error.code == 429:
+                retry_after = (error.headers or {}).get("Retry-After", "unspecified")
+                raise RuntimeError(f"Parquet server rate limit reached. Retry-After: {retry_after}. "
+                                   "Requests stopped; wait before retrying.") from error
+            raise
         if end == self.size - 1 and len(data) >= 8 and data[-4:] == b"PAR1":
             footer_size = int.from_bytes(data[-8:-4], "little") + 8
             if footer_size <= len(data):
