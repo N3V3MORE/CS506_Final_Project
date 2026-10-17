@@ -6,6 +6,7 @@ Run: python evaluate_features.py [features.csv] [--output predictions.csv]
 Compares the training mean, word count, and word count + phoneme proportions.
 Also tests word count + the share of reference words missing from CMUdict:
 (num_g2p_words + num_unresolved_words) / num_words.
+Then checks whether phoneme proportions improve that CMUdict model.
 Models use StandardScaler and Ridge(alpha=1.0), fitted on training clips only.
 Each clip is held out once. Several speakers use up to five grouped
 folds; one speaker uses five shuffled clip folds with seed 42.
@@ -36,6 +37,7 @@ PREDICTION_LABELS = (
     ("word_count_prediction", "Word count"),
     ("word_phoneme_prediction", "Word count + phonemes"),
     ("word_cmudict_prediction", "Word count + CMUdict misses"),
+    ("word_cmudict_phoneme_prediction", "Word count + CMUdict misses + phonemes"),
 )
 
 
@@ -58,6 +60,7 @@ def evaluate_clips(clips):
         "word_count_prediction": [],
         "word_phoneme_prediction": [],
         "word_cmudict_prediction": [],
+        "word_cmudict_phoneme_prediction": [],
     }
     missing_proportions = []
     for clip in clips:
@@ -72,11 +75,13 @@ def evaluate_clips(clips):
             raise ValueError(f"{clip['audio_id']}: CMUdict-missing word count exceeds num_words")
         missing_proportion = missing_words / num_words
         missing_proportions.append(missing_proportion)
+        phoneme_proportions = [clip[column] for column in PHONEME_COLUMNS]
         features["word_count_prediction"].append([num_words])
-        features["word_phoneme_prediction"].append(
-            [num_words] + [clip[column] for column in PHONEME_COLUMNS]
-        )
+        features["word_phoneme_prediction"].append([num_words] + phoneme_proportions)
         features["word_cmudict_prediction"].append([num_words, missing_proportion])
+        features["word_cmudict_phoneme_prediction"].append(
+            [num_words, missing_proportion] + phoneme_proportions
+        )
     targets = [clip["wer"] for clip in clips]
     predictions = [None] * len(clips)
     for fold, (train, test) in enumerate(folds, start=1):
@@ -159,6 +164,10 @@ def main():
         ("word_count_prediction", "baseline_prediction", "Word count over mean guess"),
         ("word_phoneme_prediction", "word_count_prediction", "Adding phonemes to word count"),
         ("word_cmudict_prediction", "word_count_prediction", "Adding CMUdict misses to word count"),
+        (
+            "word_cmudict_phoneme_prediction", "word_cmudict_prediction",
+            "Adding phonemes to word count + CMUdict misses",
+        ),
     ):
         reference_mse = scores[reference]["mse"]
         if reference_mse == 0:

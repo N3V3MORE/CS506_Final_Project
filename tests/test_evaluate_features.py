@@ -51,7 +51,10 @@ class PredictionTests(unittest.TestCase):
                 self.assertEqual(before["fold"], after["fold"])
                 self.assertAlmostEqual(before["baseline_prediction"], expected_mean)
                 self.assertEqual(before["baseline_prediction"], after["baseline_prediction"])
-                for column in ("word_count_prediction", "word_phoneme_prediction", "word_cmudict_prediction"):
+                for column in (
+                    "word_count_prediction", "word_phoneme_prediction",
+                    "word_cmudict_prediction", "word_cmudict_phoneme_prediction",
+                ):
                     self.assertAlmostEqual(before[column], after[column])
 
     def test_known_signal_beats_mean_and_saved_files_are_protected(self):
@@ -74,11 +77,15 @@ class PredictionTests(unittest.TestCase):
                                        scores["baseline_prediction"][metric])
                 self.assertLess(scores["word_phoneme_prediction"][metric],
                                 scores["word_count_prediction"][metric] / 5)
+                self.assertLess(scores["word_cmudict_phoneme_prediction"][metric],
+                                scores["word_cmudict_prediction"][metric] / 5)
             self.assertGreater(max(row["word_phoneme_prediction"] for row in predictions), 1)
             self.assertTrue(all(row["word_phoneme_prediction"] >= 0 for row in predictions))
             with output.open(encoding="utf-8", newline="") as stream:
                 saved = list(csv.DictReader(stream))
             self.assertEqual(len(saved), len(clips))
+            self.assertAlmostEqual(float(saved[0]["word_cmudict_phoneme_prediction"]),
+                                   predictions[0]["word_cmudict_phoneme_prediction"])
             output_before = output.read_bytes()
             for destination in (source, output):
                 with self.assertRaises(FileExistsError):
@@ -101,6 +108,7 @@ class PredictionTests(unittest.TestCase):
         for row in predictions:
             self.assertAlmostEqual(row["word_count_prediction"], row["word_phoneme_prediction"])
             self.assertAlmostEqual(row["word_count_prediction"], row["word_cmudict_prediction"])
+            self.assertAlmostEqual(row["word_count_prediction"], row["word_cmudict_phoneme_prediction"])
 
     def test_missing_word_share_includes_g2p_and_unresolved_words(self):
         clips = sample_clips()
@@ -118,6 +126,7 @@ class PredictionTests(unittest.TestCase):
                             scores["word_count_prediction"][metric] / 5)
         for index, row in enumerate(predictions):
             self.assertAlmostEqual(row["cmudict_missing_proportion"], (index + 1) / len(clips))
+            self.assertAlmostEqual(row["word_cmudict_prediction"], row["word_cmudict_phoneme_prediction"])
         clips[0]["num_g2p_words"] = len(clips)
         with self.assertRaisesRegex(ValueError, "CMUdict-missing word count exceeds num_words"):
             evaluate_clips(clips)
@@ -136,6 +145,7 @@ class PredictionTests(unittest.TestCase):
             self.assertAlmostEqual(row["word_count_prediction"], 0.25)
             self.assertAlmostEqual(row["word_phoneme_prediction"], 0.25)
             self.assertAlmostEqual(row["word_cmudict_prediction"], 0.25)
+            self.assertAlmostEqual(row["word_cmudict_phoneme_prediction"], 0.25)
         self.assertEqual(len({row["fold"] for row in predictions}), 3)
         self.assertTrue(all(len(folds) == 1 for folds in speaker_folds.values()))
         scores = prediction_errors(predictions)
@@ -143,6 +153,7 @@ class PredictionTests(unittest.TestCase):
         self.assertEqual(scores["word_count_prediction"]["mse"], 0)
         self.assertEqual(scores["word_phoneme_prediction"]["mse"], 0)
         self.assertEqual(scores["word_cmudict_prediction"]["mse"], 0)
+        self.assertEqual(scores["word_cmudict_phoneme_prediction"]["mse"], 0)
         with self.assertRaisesRegex(ValueError, "At least five clips"):
             evaluate_clips(clips[:4])
         for value in (0, -1, 1.5, "nan", None):
