@@ -1,4 +1,4 @@
-r"""Transcribe a saved LibriSpeech selection with OpenAI Whisper base.en on CUDA.
+r"""Transcribe a saved LibriSpeech selection with an English-only OpenAI Whisper model on CUDA.
 
 Windows setup (Python 3.11):
     python -m venv .venv
@@ -10,12 +10,19 @@ Process the list: python transcribe_selection.py
 Defaults to outputs/dev-other_selected_clips_1000.csv. Successful rows are
 saved immediately; later runs skip them. --limit uses the first N list entries,
 including saved entries. CUDA is required; inference never falls back to CPU.
+Use --model tiny.en/base.en/small.en; checkpoints have a .metadata.json sidecar.
+Historical CSVs without metadata are read-only. --audio-cache shares downloaded
+FLAC files between model runs.
 """
 
 import argparse
 import csv
 from functools import cache
 import io
+import hashlib
+from importlib import metadata
+import platform
+import random
 import json
 import math
 from pathlib import Path
@@ -25,10 +32,30 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-from select_clips import DATASET_OPTIONS
+from select_clips import DATASET_OPTIONS, load_speaker_metadata
 
 
 MODEL_NAME = "base.en"
+MODEL_CHOICES = ("tiny.en", "base.en", "small.en")
+NORMALIZATION = "Whisper EnglishTextNormalizer; join internal alphabetic hyphens first"
+TRANSCRIPTION_SETTINGS = {
+    "language": "en", "fp16": False,
+    "decoding_defaults_version": "20250625",
+    "decoding": {
+        "temperature": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        "compression_ratio_threshold": 2.4, "logprob_threshold": -1.0,
+        "no_speech_threshold": 0.6, "condition_on_previous_text": True,
+        "initial_prompt": None, "carry_initial_prompt": False,
+        "word_timestamps": False, "clip_timestamps": "0",
+        "hallucination_silence_threshold": None, "task": "transcribe",
+        "sample_len": None, "best_of": None, "beam_size": None,
+        "patience": None, "length_penalty": None, "prompt": None, "prefix": None,
+        "suppress_tokens": "-1", "suppress_blank": True,
+        "without_timestamps": False, "max_initial_timestamp": 1.0,
+    },
+    "seed": 506,
+    "seed_strategy": "(506 + big-endian first 4 SHA256 bytes of audio_id UTF-8) modulo 2**32",
+}
 DEVICE = "cuda:0"
 RESULT_COLUMNS = ["audio_id", "speaker_id", "reference_text", "predicted_text", "wer"]
 
@@ -84,7 +111,7 @@ def read_completed(output_file, clips):
     return completed
 
 
-def load_gpu_model():
+def load_gpu_model(model_name=MODEL_NAME):
     import torch
 
     if not torch.cuda.is_available():
@@ -92,9 +119,9 @@ def load_gpu_model():
     import whisper
 
     print(f"Device: {DEVICE} | {torch.cuda.get_device_name(0)}", flush=True)
-    print(f"PyTorch: {torch.__version__} | CUDA: {torch.version.cuda} | Model: {MODEL_NAME}", flush=True)
+    print(f"PyTorch: {torch.__version__} | CUDA: {torch.version.cuda} | Model: {model_name}", flush=True)
     model = whisper.load_model(
-        MODEL_NAME, device=DEVICE,
+        model_name, device=DEVICE,
         download_root=str(Path(__file__).resolve().parent / "outputs" / "models"),
     )
     if str(model.device) != DEVICE:
@@ -104,8 +131,12 @@ def load_gpu_model():
 
 
 @cache
-def load_audio_metadata(dataset_name):
+def load_audio_metadata(dataset_name, speaker_id=None):
     """Read the split's audio links once instead of searching for each clip."""
+    if dataset_name == "train-other-500":
+        if speaker_id is None:
+            raise ValueError("train-other-500 requires a selected speaker; full-split scans are disabled.")
+        return {row["id"]: row for row in load_speaker_metadata(dataset_name, speaker_id)}
     config, split = DATASET_OPTIONS[dataset_name]
     recordings = {}
     while True:
@@ -113,8 +144,12 @@ def load_audio_metadata(dataset_name):
             "dataset": "openslr/librispeech_asr", "config": config, "split": split,
             "offset": len(recordings), "length": 100,
         })
-        with urlopen(f"https://datasets-server.huggingface.co/rows?{query}", timeout=30) as response:
-            data = json.load(response)
+        try:
+            with urlopen(f"https://datasets-server.huggingface.co/rows?{query}", timeout=30) as response:
+                data = json.load(response)
+        except HTTPError as error:
+            stop_on_rate_limit(error)
+            raise
         if data["partial"] or not data["rows"]:
             raise ValueError("Hugging Face returned incomplete audio metadata.")
         for item in data["rows"]:
@@ -128,20 +163,14 @@ def load_audio_metadata(dataset_name):
             raise ValueError("Hugging Face returned inconsistent clip counts.")
 
 
-def fetch_audio(clip):
-    try:
-        recordings = load_audio_metadata(clip["dataset"])
-    except (OSError, ValueError, KeyError) as error:
-        raise RuntimeError(f"Could not load audio metadata: {error}. Saved results are kept.") from error
-    sample = recordings[clip["audio_id"]]
-    if (sample["id"] != clip["audio_id"] or str(sample["speaker_id"]) != clip["speaker_id"]
-            or str(sample["chapter_id"]) != clip["chapter_id"] or sample["text"] != clip["reference_text"]):
-        raise ValueError("Dataset metadata does not match the saved selection.")
-    audio_source = sample["audio"][0]
-    if audio_source["type"] not in ("audio/flac", "audio/x-flac"):
-        raise ValueError("Expected FLAC audio from the dataset.")
-    with urlopen(audio_source["src"], timeout=60) as response:
-        audio_bytes = response.read()
+def stop_on_rate_limit(error):
+    if error.code == 429:
+        retry_after = (error.headers or {}).get("Retry-After", "unspecified")
+        raise RuntimeError(f"Dataset server rate limit reached. Retry-After: {retry_after}. "
+                           "Saved clips are kept; wait before retrying.") from error
+
+
+def decode_audio(audio_bytes):
     import soundfile as sf
 
     try:
@@ -155,22 +184,125 @@ def fetch_audio(clip):
     return audio
 
 
-def score_transcription(reference, prediction):
-    from jiwer import wer
+def fetch_audio(clip, cache_dir=None):
+    cache_file = None
+    if cache_dir is not None:
+        cache_file = Path(cache_dir) / clip["dataset"] / f"{clip['audio_id']}.flac"
+        if cache_file.exists():
+            try:
+                return decode_audio(cache_file.read_bytes())
+            except (OSError, ValueError) as error:
+                raise ValueError(f"Invalid cached audio {cache_file}: {error}. Cache left unchanged.") from error
+    try:
+        if clip["dataset"] == "train-other-500":
+            recordings = load_audio_metadata(clip["dataset"], clip["speaker_id"])
+        else:
+            recordings = load_audio_metadata(clip["dataset"])
+    except (OSError, ValueError, KeyError) as error:
+        raise RuntimeError(f"Could not load audio metadata: {error}. Saved results are kept.") from error
+    sample = recordings[clip["audio_id"]]
+    if (sample["id"] != clip["audio_id"] or str(sample["speaker_id"]) != clip["speaker_id"]
+            or str(sample["chapter_id"]) != clip["chapter_id"] or sample["text"] != clip["reference_text"]):
+        raise ValueError("Dataset metadata does not match the saved selection.")
+    audio_source = sample["audio"][0]
+    if audio_source["type"] not in ("audio/flac", "audio/x-flac"):
+        raise ValueError("Expected FLAC audio from the dataset.")
+    with urlopen(audio_source["src"], timeout=60) as response:
+        audio_bytes = response.read()
+    audio = decode_audio(audio_bytes)
+    if cache_file is not None:
+        try:
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            with cache_file.open("xb") as destination:
+                destination.write(audio_bytes)
+        except OSError as error:
+            raise RuntimeError(f"Could not save audio cache {cache_file}: {error}") from error
+    return audio
+
+
+def runtime_versions():
+    versions = {"python": platform.python_version()}
+    for package in ("openai-whisper", "torch", "jiwer"):
+        try:
+            versions[package] = metadata.version(package)
+        except metadata.PackageNotFoundError:
+            versions[package] = "unavailable"
+    return versions
+
+
+def checkpoint_metadata(input_file, output_file, model_name):
+    versions = runtime_versions()
+    if versions["openai-whisper"] not in ("20250625", "unavailable"):
+        raise ValueError("Recorded decoding defaults require openai-whisper 20250625. "
+                         "Review defaults before using another version.")
+    expected = {
+        "model_name": model_name, "device": DEVICE,
+        "selection_sha256": hashlib.sha256(Path(input_file).read_bytes()).hexdigest(),
+        "settings": dict(TRANSCRIPTION_SETTINGS), "normalization": NORMALIZATION, "versions": versions,
+    }
+    metadata_file = Path(output_file).with_suffix(".metadata.json")
+    if metadata_file.exists():
+        saved = json.loads(metadata_file.read_text(encoding="utf-8"))
+        if not isinstance(saved, dict) or any(saved.get(key) != value for key, value in expected.items()):
+            raise ValueError("Checkpoint metadata does not match the model, selection, settings or versions. "
+                             "Choose a new --output.")
+        if saved.get("effective_device") != DEVICE:
+            raise ValueError("Checkpoint metadata does not verify cuda:0.")
+    elif Path(output_file).exists() and Path(output_file).stat().st_size:
+        raise ValueError("Existing results have no checkpoint metadata. Historical results are read-only; "
+                         "choose a new --output.")
+    return metadata_file, expected
+
+
+def save_checkpoint_metadata(metadata_file, expected, model):
+    if str(model.device) != DEVICE:
+        raise RuntimeError(f"Expected {DEVICE}, but Whisper loaded on {model.device}.")
+    if metadata_file.exists():
+        return
+    import torch
+
+    details = dict(expected, effective_device=str(model.device),
+                   gpu_name=torch.cuda.get_device_name(0), cuda_version=torch.version.cuda)
+    metadata_file.parent.mkdir(parents=True, exist_ok=True)
+    with metadata_file.open("x", encoding="utf-8") as destination:
+        json.dump(details, destination, indent=2)
+        destination.write("\n")
+
+
+def normalize_text(text):
     from whisper.normalizers import EnglishTextNormalizer
 
     normalizer = EnglishTextNormalizer()
     # Match run_baseline.py, including joining internal hyphens.
-    reference = normalizer(re.sub(r"(?<=[A-Za-z])-(?=[A-Za-z])", "", reference))
-    prediction = normalizer(re.sub(r"(?<=[A-Za-z])-(?=[A-Za-z])", "", prediction))
-    return wer(reference, prediction)
+    return normalizer(re.sub(r"(?<=[A-Za-z])-(?=[A-Za-z])", "", text))
 
 
-def run_selection(input_file, output_file, limit=None):
+def score_transcription(reference, prediction):
+    from jiwer import wer
+
+    return wer(normalize_text(reference), normalize_text(prediction))
+
+
+def seed_transcription(audio_id):
+    """Give each clip the same random state regardless of resume order."""
+    import numpy as np
+    import torch
+
+    clip_seed = (506 + int.from_bytes(hashlib.sha256(audio_id.encode("utf-8")).digest()[:4], "big")) % 2**32
+    random.seed(clip_seed)
+    np.random.seed(clip_seed)
+    torch.manual_seed(clip_seed)
+    return clip_seed
+
+
+def run_selection(input_file, output_file, limit=None, model_name=MODEL_NAME, audio_cache=None):
     if limit is not None and limit < 1:
         raise ValueError("--limit must be positive.")
+    if model_name not in MODEL_CHOICES:
+        raise ValueError(f"Unknown model: {model_name}")
     clips = read_selection(input_file)
     completed = read_completed(output_file, clips)
+    metadata_file, expected_metadata = checkpoint_metadata(input_file, output_file, model_name)
     if limit is not None:
         clips = clips[:limit]
     pending = [clip for clip in clips if clip["audio_id"] not in completed]
@@ -178,7 +310,10 @@ def run_selection(input_file, output_file, limit=None):
     if not pending:
         return 0, 0
 
-    model = load_gpu_model()
+    model = load_gpu_model(model_name)
+    save_checkpoint_metadata(metadata_file, expected_metadata, model)
+    if audio_cache is None:
+        audio_cache = Path(__file__).resolve().parent / "outputs" / "audio"
     output_file = Path(output_file)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     needs_header = not output_file.exists() or output_file.stat().st_size == 0
@@ -190,14 +325,15 @@ def run_selection(input_file, output_file, limit=None):
             destination.flush()
         for index, clip in enumerate(pending, start=1):
             try:
-                audio = fetch_audio(clip)
+                audio = fetch_audio(clip, audio_cache)
+                seed_transcription(clip["audio_id"])
                 started = perf_counter()
                 prediction = model.transcribe(audio, language="en", fp16=False)["text"]
                 error_rate = score_transcription(clip["reference_text"], prediction)
                 seconds = perf_counter() - started
             except (OSError, ValueError, KeyError) as error:
-                if isinstance(error, HTTPError) and error.code == 429:
-                    raise RuntimeError("Dataset server rate limit reached. Try again later; saved clips are kept.") from error
+                if isinstance(error, HTTPError):
+                    stop_on_rate_limit(error)
                 print(f"Failed {clip['audio_id']}: {error}", flush=True)
                 failed += 1
                 continue
@@ -224,10 +360,12 @@ def main():
                         default=project_dir / "outputs" / "dev-other_selected_clips_1000.csv")
     parser.add_argument("--limit", type=int, help="use only the first N selection entries")
     parser.add_argument("--output", type=Path, help="results CSV; matching saved rows are resumed")
+    parser.add_argument("--model", choices=MODEL_CHOICES, default=MODEL_NAME)
+    parser.add_argument("--audio-cache", type=Path, help="shared selected-audio cache directory")
     args = parser.parse_args()
-    output_file = args.output or project_dir / "outputs" / f"{args.input.stem}_results_{MODEL_NAME}.csv"
+    output_file = args.output or project_dir / "outputs" / f"{args.input.stem}_results_{args.model}.csv"
     try:
-        _, failed = run_selection(args.input, output_file, args.limit)
+        _, failed = run_selection(args.input, output_file, args.limit, args.model, args.audio_cache)
     except (OSError, ValueError, KeyError, csv.Error, RuntimeError, ImportError) as error:
         parser.exit(1, f"Error: {error}\n")
     if failed:
