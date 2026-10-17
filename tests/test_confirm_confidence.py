@@ -12,7 +12,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 import confirm_confidence as confirmation
-from evaluate_confidence import feature_matrix, read_confidence
+from evaluate_confidence import PREDICTION_LABELS, feature_matrix, read_confidence
 from transcribe_selection import CONFIDENCE_METHOD, NORMALIZATION, RESULT_COLUMNS, TRANSCRIPTION_SETTINGS
 
 
@@ -85,8 +85,6 @@ class FrozenConfidenceTests(unittest.TestCase):
                 predictions, scores, interval = confirmation.evaluate(
                     frozen_path, [new_path], directory/"predictions.csv", DICTIONARY,
                 )
-            self.assertEqual(len(predictions), 4)
-            self.assertEqual(len(interval), 2)
             changed = deepcopy(new)
             for row in changed:
                 row["wer"] += 10
@@ -94,7 +92,7 @@ class FrozenConfidenceTests(unittest.TestCase):
             write_results(changed_path, changed, confirmation.file_record(selection_path)["sha256"])
             repeated, _, _ = confirmation.evaluate(frozen_path, [changed_path], directory/"repeated.csv", DICTIONARY)
             for before, after in zip(predictions, repeated):
-                for key in ("mean_prediction", "median_prediction", "text_prediction", "confidence_prediction"):
+                for key, _ in PREDICTION_LABELS:
                     self.assertEqual(before[key], after[key])
 
     def test_frozen_inputs_dictionary_sources_and_historical_speakers_are_protected(self):

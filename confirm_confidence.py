@@ -27,7 +27,7 @@ from sklearn.preprocessing import StandardScaler
 
 from evaluate_confidence import (
     PREDICTION_LABELS, learn_feature_state, prediction_errors,
-    read_confidence, transform_features,
+    read_confidence, transform_features, write_predictions,
 )
 from transcribe_selection import read_selection
 
@@ -190,11 +190,7 @@ def evaluate(frozen_file, input_files, output_file, dictionary):
         raise ValueError("New confidence input changed during evaluation")
     scores = prediction_errors(predictions)
     interval = paired_interval(predictions, frozen["protocol"])
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    with output_file.open("x", encoding="utf-8", newline="") as destination:
-        writer = csv.DictWriter(destination, fieldnames=predictions[0])
-        writer.writeheader()
-        writer.writerows(predictions)
+    write_predictions(output_file, predictions)
     return predictions, scores, interval
 
 

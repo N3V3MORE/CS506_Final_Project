@@ -143,6 +143,15 @@ def prediction_errors(rows):
     return scores
 
 
+def write_predictions(output_file, predictions):
+    output_file = Path(output_file)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with output_file.open("x", encoding="utf-8", newline="") as destination:
+        writer = csv.DictWriter(destination, fieldnames=predictions[0])
+        writer.writeheader()
+        writer.writerows(predictions)
+
+
 def evaluate_confidence(input_files, output_file, dictionary=None):
     output_file = Path(output_file)
     if output_file.exists():
@@ -152,11 +161,7 @@ def evaluate_confidence(input_files, output_file, dictionary=None):
         import cmudict
         dictionary = cmudict.dict()
     predictions = evaluate_clips(rows, dictionary)
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    with output_file.open("x", encoding="utf-8", newline="") as destination:
-        writer = csv.DictWriter(destination, fieldnames=predictions[0])
-        writer.writeheader()
-        writer.writerows(predictions)
+    write_predictions(output_file, predictions)
     return rows, predictions, prediction_errors(predictions)
 
 
