@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from build_features import PHONEMES
-from evaluate_features import evaluate_clips, evaluate_features, prediction_errors
+from evaluate_features import PREDICTION_LABELS, evaluate_clips, evaluate_features, prediction_errors
 
 
 def sample_clips(count=25):
@@ -51,11 +51,9 @@ class PredictionTests(unittest.TestCase):
                 self.assertEqual(before["fold"], after["fold"])
                 self.assertAlmostEqual(before["baseline_prediction"], expected_mean)
                 self.assertEqual(before["baseline_prediction"], after["baseline_prediction"])
-                for column in (
-                    "word_count_prediction", "word_phoneme_prediction",
-                    "word_cmudict_prediction", "word_cmudict_phoneme_prediction",
-                ):
-                    self.assertAlmostEqual(before[column], after[column])
+                for column, _ in PREDICTION_LABELS:
+                    if column != "baseline_prediction":
+                        self.assertAlmostEqual(before[column], after[column])
 
     def test_known_signal_beats_mean_and_saved_files_are_protected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -106,9 +104,9 @@ class PredictionTests(unittest.TestCase):
             self.assertLess(scores["word_count_prediction"][metric],
                             scores["baseline_prediction"][metric] / 5)
         for row in predictions:
-            self.assertAlmostEqual(row["word_count_prediction"], row["word_phoneme_prediction"])
-            self.assertAlmostEqual(row["word_count_prediction"], row["word_cmudict_prediction"])
-            self.assertAlmostEqual(row["word_count_prediction"], row["word_cmudict_phoneme_prediction"])
+            for column, _ in PREDICTION_LABELS:
+                if column not in ("baseline_prediction", "word_count_prediction"):
+                    self.assertAlmostEqual(row["word_count_prediction"], row[column])
 
     def test_missing_word_share_includes_g2p_and_unresolved_words(self):
         clips = sample_clips()
@@ -141,19 +139,13 @@ class PredictionTests(unittest.TestCase):
         for row in predictions:
             speaker_folds.setdefault(row["speaker_id"], set()).add(row["fold"])
             self.assertEqual(row["split_strategy"], "speaker_grouped")
-            self.assertAlmostEqual(row["baseline_prediction"], 0.25)
-            self.assertAlmostEqual(row["word_count_prediction"], 0.25)
-            self.assertAlmostEqual(row["word_phoneme_prediction"], 0.25)
-            self.assertAlmostEqual(row["word_cmudict_prediction"], 0.25)
-            self.assertAlmostEqual(row["word_cmudict_phoneme_prediction"], 0.25)
+            for column, _ in PREDICTION_LABELS:
+                self.assertAlmostEqual(row[column], 0.25)
         self.assertEqual(len({row["fold"] for row in predictions}), 3)
         self.assertTrue(all(len(folds) == 1 for folds in speaker_folds.values()))
         scores = prediction_errors(predictions)
-        self.assertEqual(scores["baseline_prediction"]["mse"], 0)
-        self.assertEqual(scores["word_count_prediction"]["mse"], 0)
-        self.assertEqual(scores["word_phoneme_prediction"]["mse"], 0)
-        self.assertEqual(scores["word_cmudict_prediction"]["mse"], 0)
-        self.assertEqual(scores["word_cmudict_phoneme_prediction"]["mse"], 0)
+        for column, _ in PREDICTION_LABELS:
+            self.assertEqual(scores[column]["mse"], 0)
         with self.assertRaisesRegex(ValueError, "At least five clips"):
             evaluate_clips(clips[:4])
         for value in (0, -1, 1.5, "nan", None):

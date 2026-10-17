@@ -36,7 +36,10 @@ def clips_for_tests(count=12):
 class StudyEvaluationTests(unittest.TestCase):
     def test_feature_learning_and_model_fits_use_training_speakers_only(self):
         training = clips_for_tests()
+        for index, clip in enumerate(training):
+            clip["speaker_id"] = f"speaker-{index // 2}"
         held_out = clips_for_tests(1)
+        held_out[0]["speaker_id"] = "unseen-speaker"
         held_out[0]["words"] = ["never_seen_here"]
         held_out[0]["bigram_counts"] = {"T|R": 100000}
         held_out[0]["num_pairs"] = 100000
@@ -62,13 +65,20 @@ class StudyEvaluationTests(unittest.TestCase):
         np.testing.assert_allclose(
             fitted["scaler_mean"], feature_matrix(training, fitted).mean(axis=0),
         )
-        with patch("study_evaluation.fit_model", wraps=fit_model) as calls:
+        with (
+            patch("study_evaluation.fit_model", wraps=fit_model) as fits,
+            patch("study_evaluation.predict_model", wraps=predict_model) as predictions,
+        ):
             alpha = choose_alpha(training, targets, "stress")
         self.assertIn(alpha, SPEC["alphas"])
-        self.assertEqual(len(calls.call_args_list), 9)
-        for call in calls.call_args_list:
-            self.assertLess(len(call.args[0]), len(training))
-            self.assertEqual(len({clip["speaker_id"] for clip in call.args[0]}), 8)
+        self.assertTrue(fits.call_args_list)
+        all_speakers = {clip["speaker_id"] for clip in training}
+        for fit_call, prediction_call in zip(fits.call_args_list, predictions.call_args_list, strict=True):
+            training_speakers = {clip["speaker_id"] for clip in fit_call.args[0]}
+            held_out_speakers = {clip["speaker_id"] for clip in prediction_call.args[0]}
+            self.assertTrue(held_out_speakers)
+            self.assertTrue(training_speakers.isdisjoint(held_out_speakers))
+            self.assertEqual(training_speakers | held_out_speakers, all_speakers)
         predictions = predict_model(training, fitted)
         self.assertTrue(all(math.isfinite(value) and value >= 0 for value in predictions))
         self.assertLess(
@@ -112,11 +122,13 @@ class StudyEvaluationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "frozen.json"
             source.write_text(json.dumps(manifest), encoding="utf-8")
-            with patch("study_evaluation.code_records", return_value={"changed": {}}):
-                with patch("study_evaluation.check_inputs") as read_inputs:
-                    with self.assertRaisesRegex(ValueError, "currently executing"):
-                        load_frozen(source)
-                    read_inputs.assert_not_called()
+            with (
+                patch("study_evaluation.code_records", return_value={"changed": {}}),
+                patch("study_evaluation.check_inputs") as read_inputs,
+            ):
+                with self.assertRaisesRegex(ValueError, "currently executing"):
+                    load_frozen(source)
+                read_inputs.assert_not_called()
 
         cohort = clips_for_tests(2)
         manifest = {

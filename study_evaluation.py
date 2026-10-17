@@ -328,6 +328,13 @@ def predict_model(clips, state):
     return np.maximum(predictions, 0).tolist()
 
 
+def saved_fold_indices(clips, fold_map, fold):
+    return (
+        [index for index, clip in enumerate(clips) if fold_map[clip["audio_id"]] != fold],
+        [index for index, clip in enumerate(clips) if fold_map[clip["audio_id"]] == fold],
+    )
+
+
 def choose_alpha(clips, targets, block, n_splits=3, fold_map=None):
     speakers = [clip["speaker_id"] for clip in clips]
     if len(set(speakers)) < n_splits:
@@ -336,10 +343,7 @@ def choose_alpha(clips, targets, block, n_splits=3, fold_map=None):
         folds = list(GroupKFold(n_splits=n_splits).split(clips, groups=speakers))
     else:
         folds = [
-            (
-                [index for index, clip in enumerate(clips) if fold_map[clip["audio_id"]] != fold],
-                [index for index, clip in enumerate(clips) if fold_map[clip["audio_id"]] == fold],
-            )
+            saved_fold_indices(clips, fold_map, fold)
             for fold in sorted(set(fold_map.values()))
         ]
     scores = {}
@@ -383,8 +387,7 @@ def evaluate_development(clips, targets, folds, model_name):
     unavailable = set()
     chosen_alphas = defaultdict(dict)
     for fold in range(1, 6):
-        train = [index for index, clip in enumerate(clips) if folds[clip["audio_id"]] != fold]
-        test = [index for index, clip in enumerate(clips) if folds[clip["audio_id"]] == fold]
+        train, test = saved_fold_indices(clips, folds, fold)
         training = [clips[index] for index in train]
         training_targets = [targets[index] for index in train]
         print(f"{model_name}: development fold {fold}/5", flush=True)
@@ -453,6 +456,13 @@ def write_predictions(path, rows):
         writer = csv.DictWriter(destination, fieldnames=rows[0])
         writer.writeheader()
         writer.writerows(rows)
+
+
+def save_evaluation(output_dir, predictions, summary):
+    output_dir.mkdir(parents=True, exist_ok=False)
+    for model, rows in predictions.items():
+        write_predictions(output_dir / f"{model}_{summary['stage']}_predictions.csv", rows)
+    write_json(output_dir / "summary.json", summary)
 
 
 def check_selection_hashes(provenance):
@@ -556,10 +566,7 @@ def develop(feature_file, result_files, fold_file, output_dir, allow_historical=
         }
         manifest["freeze_sha256"] = freeze_digest(manifest)
     check_inputs(inputs)
-    output_dir.mkdir(parents=True, exist_ok=False)
-    for model, rows in predictions.items():
-        write_predictions(output_dir / f"{model}_development_predictions.csv", rows)
-    write_json(output_dir / "summary.json", summary)
+    save_evaluation(output_dir, predictions, summary)
     if manifest:
         write_json(output_dir / "frozen.json", manifest)
     return summary
@@ -715,10 +722,7 @@ def confirm(frozen_file, feature_file, result_files, output_dir):
     for entry in provenance.values():
         check_record(entry["results"])
         check_record(entry["metadata"])
-    output_dir.mkdir(parents=True, exist_ok=False)
-    for model, rows in predictions.items():
-        write_predictions(output_dir / f"{model}_confirmation_predictions.csv", rows)
-    write_json(output_dir / "summary.json", summary)
+    save_evaluation(output_dir, predictions, summary)
     return summary
 
 
