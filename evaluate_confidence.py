@@ -37,7 +37,7 @@ TEXT_FEATURES = (
 )
 
 
-def read_confidence(paths):
+def read_confidence(paths, include_targets=True):
     rows, seen = [], set()
     for path in map(Path, paths):
         metadata = json.loads(path.with_suffix(".metadata.json").read_text(encoding="utf-8-sig"))
@@ -56,13 +56,17 @@ def read_confidence(paths):
                     raise ValueError(f"{path}: incomplete CSV row")
                 if not row["audio_id"].strip() or row["audio_id"] in seen or not row["speaker_id"].strip():
                     raise ValueError(f"{path}: missing or duplicate audio/speaker ID")
-                error_rate = float(row["wer"])
+                if include_targets:
+                    error_rate = float(row["wer"])
+                    if not math.isfinite(error_rate) or error_rate < 0:
+                        raise ValueError(f"{row['audio_id']}: WER must be finite and non-negative")
+                    row["wer"] = error_rate
                 confidence = float(row["avg_logprob"]) if row["avg_logprob"].strip() else None
-                if not math.isfinite(error_rate) or error_rate < 0:
-                    raise ValueError(f"{row['audio_id']}: WER must be finite and non-negative")
                 if confidence is not None and (not math.isfinite(confidence) or confidence > 0):
                     raise ValueError(f"{row['audio_id']}: avg_logprob must be finite and at most zero")
-                row["wer"], row["avg_logprob"] = error_rate, confidence
+                row["avg_logprob"] = confidence
+                if not include_targets:
+                    row = {key: row[key] for key in ("audio_id", "speaker_id", "predicted_text", "avg_logprob")}
                 seen.add(row["audio_id"])
                 rows.append(row)
     if not rows:
@@ -70,15 +74,20 @@ def read_confidence(paths):
     return rows
 
 
-def feature_matrix(rows, train, dictionary):
-    """Use hypotheses only; learn frequency and missing-confidence fill from train."""
-    words = [WORD_PATTERN.findall(row["predicted_text"].lower()) for row in rows]
-    frequencies = Counter(word for index in train for word in words[index])
-    denominator = sum(frequencies.values()) + len(frequencies) + 1
+def learn_feature_state(rows, train):
+    frequencies = Counter(word for index in train
+                          for word in WORD_PATTERN.findall(rows[index]["predicted_text"].lower()))
     scores = [rows[index]["avg_logprob"] for index in train if rows[index]["avg_logprob"] is not None]
-    fill = median(scores) if scores else 0.0
+    return {"word_counts": dict(frequencies), "confidence_fill": median(scores) if scores else 0.0}
+
+
+def transform_features(rows, state, dictionary):
+    """Use hypotheses with frozen word frequencies and confidence fill."""
+    frequencies = state["word_counts"]
+    denominator = sum(frequencies.values()) + len(frequencies) + 1
     values = []
-    for row, recognized in zip(rows, words):
+    for row in rows:
+        recognized = WORD_PATTERN.findall(row["predicted_text"].lower())
         count = len(recognized)
         values.append([
             count,
@@ -86,9 +95,13 @@ def feature_matrix(rows, train, dictionary):
             sum(map(len, recognized)) / count if count else 0.0,
             sum(-math.log((frequencies.get(word, 0) + 1) / denominator) for word in recognized) / count if count else 0.0,
             1.0 / max(1, count),
-            row["avg_logprob"] if row["avg_logprob"] is not None else fill,
+            row["avg_logprob"] if row["avg_logprob"] is not None else state["confidence_fill"],
         ])
     return values
+
+
+def feature_matrix(rows, train, dictionary):
+    return transform_features(rows, learn_feature_state(rows, train), dictionary)
 
 
 def evaluate_clips(rows, dictionary):
