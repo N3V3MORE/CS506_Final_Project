@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 
-from transcribe_selection import load_audio_metadata, load_gpu_model, run_selection, fetch_audio, seed_transcription
+from transcribe_selection import average_logprob, load_audio_metadata, load_gpu_model, run_selection, fetch_audio, seed_transcription
 
 
 def write_selection(path, count=3):
@@ -39,8 +39,9 @@ class TranscriptionTests(unittest.TestCase):
             cuda=SimpleNamespace(get_device_name=lambda index: "Mock GPU"),
             version=SimpleNamespace(cuda="mock"), manual_seed=Mock(),
         )
+        numpy_random = SimpleNamespace(seed=Mock())
         self.torch_patch = patch.dict(sys.modules, {
-            "torch": torch, "numpy": SimpleNamespace(random=SimpleNamespace(seed=Mock())),
+            "torch": torch, "numpy": SimpleNamespace(random=numpy_random), "numpy.random": numpy_random,
         })
         self.torch_patch.start()
         self.addCleanup(self.torch_patch.stop)
@@ -97,6 +98,41 @@ class TranscriptionTests(unittest.TestCase):
             self.assertEqual(saved[0], first_row)
             self.assertEqual([row["audio_id"] for row in saved], [clip["audio_id"] for clip in clips])
             self.assertEqual(source.read_bytes(), source_before)
+
+    def test_confidence_uses_duration_weights_and_keeps_missing_scores(self):
+        segments = [{"start": 0, "end": 1, "avg_logprob": -0.2},
+                    {"start": 1, "end": 4, "avg_logprob": -0.6}]
+        self.assertAlmostEqual(average_logprob(segments), -0.5)
+        self.assertIsNone(average_logprob([]))
+        with self.assertRaisesRegex(ValueError, "Invalid Whisper confidence"):
+            average_logprob([dict(segments[0], avg_logprob=float("nan"))])
+
+    def test_confidence_resume_and_cache_only_do_not_download(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "selection.csv"
+            output = Path(directory) / "confidence.csv"
+            clips = write_selection(source, 1)
+            model = Mock(device="cuda:0")
+            model.transcribe.return_value = {
+                "text": "A cat.", "segments": [{"start": 0, "end": 1, "avg_logprob": -0.2}],
+            }
+            with patch("transcribe_selection.load_gpu_model", return_value=model) as load_model, \
+                 patch("transcribe_selection.fetch_audio", return_value=[0.0]), \
+                 patch("transcribe_selection.score_transcription", return_value=0.0), \
+                 redirect_stdout(io.StringIO()):
+                self.assertEqual(run_selection(source, output, confidence=True), (1, 0))
+                self.assertEqual(float(read_results(output)[0]["avg_logprob"]), -0.2)
+                load_model.reset_mock()
+                self.assertEqual(run_selection(source, output, confidence=True), (0, 0))
+                load_model.assert_not_called()
+                with self.assertRaisesRegex(ValueError, "incompatible CSV header"):
+                    run_selection(source, output)
+            with patch("transcribe_selection.urlopen") as request, \
+                 patch("transcribe_selection.load_audio_metadata") as metadata:
+                with self.assertRaisesRegex(ValueError, "Downloads are disabled"):
+                    fetch_audio(clips[0], directory, cached_only=True)
+                request.assert_not_called()
+                metadata.assert_not_called()
 
     def test_failed_audio_is_retried_and_disk_errors_stop(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -165,7 +201,7 @@ class TranscriptionTests(unittest.TestCase):
                  patch("transcribe_selection.score_transcription", return_value=0.0), \
                  redirect_stdout(io.StringIO()):
                 self.assertEqual(run_selection(source, output, model_name="tiny.en"), (1, 0))
-                load.assert_called_once_with("tiny.en")
+                load.assert_called_once_with("tiny.en", None, False)
                 details = json.loads(output.with_suffix(".metadata.json").read_text())
                 self.assertEqual(details["model_name"], "tiny.en")
                 self.assertEqual(details["effective_device"], "cuda:0")

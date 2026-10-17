@@ -13,6 +13,8 @@ including saved entries. CUDA is required; inference never falls back to CPU.
 Use --model tiny.en/base.en/small.en; checkpoints have a .metadata.json sidecar.
 Historical CSVs without metadata are read-only. --audio-cache shares downloaded
 FLAC files between model runs.
+Use --confidence with a new --output to save segment avg_logprob as well.
+--cached-only forbids downloads; --model-cache points at existing model weights.
 """
 
 import argparse
@@ -58,6 +60,7 @@ TRANSCRIPTION_SETTINGS = {
 }
 DEVICE = "cuda:0"
 RESULT_COLUMNS = ["audio_id", "speaker_id", "reference_text", "predicted_text", "wer"]
+CONFIDENCE_METHOD = "duration-weighted segment avg_logprob"
 
 
 def read_selection(input_file):
@@ -86,7 +89,7 @@ def read_selection(input_file):
     return clips
 
 
-def read_completed(output_file, clips):
+def read_completed(output_file, clips, confidence=False):
     output_file = Path(output_file)
     if not output_file.exists() or output_file.stat().st_size == 0:
         return set()
@@ -94,7 +97,7 @@ def read_completed(output_file, clips):
     completed = set()
     with output_file.open(encoding="utf-8-sig", newline="") as source:
         reader = csv.DictReader(source, strict=True)
-        if reader.fieldnames != RESULT_COLUMNS:
+        if reader.fieldnames != RESULT_COLUMNS + (["avg_logprob"] if confidence else []):
             raise ValueError("Existing results have an incompatible CSV header. Choose another --output.")
         for row in reader:
             if None in row or any(value is None for value in row.values()):
@@ -107,22 +110,32 @@ def read_completed(output_file, clips):
             error_rate = float(row["wer"])
             if not math.isfinite(error_rate) or error_rate < 0:
                 raise ValueError(f"{clip_id}: invalid saved WER.")
+            if confidence and row["avg_logprob"]:
+                value = float(row["avg_logprob"])
+                if not math.isfinite(value) or value > 0:
+                    raise ValueError(f"{clip_id}: invalid saved avg_logprob.")
             completed.add(clip_id)
     return completed
 
 
-def load_gpu_model(model_name=MODEL_NAME):
+def load_gpu_model(model_name=MODEL_NAME, model_cache=None, cached_only=False):
     import torch
 
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is unavailable. Install requirements-transcription.txt; CPU inference is disabled.")
     import whisper
 
+    model_cache = Path(model_cache) if model_cache is not None else Path(__file__).resolve().parent / "outputs" / "models"
+    if cached_only:
+        checkpoint = model_cache / f"{model_name}.pt"
+        expected_hash = whisper._MODELS[model_name].split("/")[-2]
+        if not checkpoint.is_file() or hashlib.sha256(checkpoint.read_bytes()).hexdigest() != expected_hash:
+            raise ValueError(f"Missing or invalid cached model: {checkpoint}. Downloads are disabled.")
     print(f"Device: {DEVICE} | {torch.cuda.get_device_name(0)}", flush=True)
     print(f"PyTorch: {torch.__version__} | CUDA: {torch.version.cuda} | Model: {model_name}", flush=True)
     model = whisper.load_model(
         model_name, device=DEVICE,
-        download_root=str(Path(__file__).resolve().parent / "outputs" / "models"),
+        download_root=str(model_cache),
     )
     if str(model.device) != DEVICE:
         raise RuntimeError(f"Expected {DEVICE}, but Whisper loaded on {model.device}.")
@@ -184,7 +197,7 @@ def decode_audio(audio_bytes):
     return audio
 
 
-def fetch_audio(clip, cache_dir=None):
+def fetch_audio(clip, cache_dir=None, cached_only=False):
     cache_file = None
     if cache_dir is not None:
         cache_file = Path(cache_dir) / clip["dataset"] / f"{clip['audio_id']}.flac"
@@ -193,6 +206,8 @@ def fetch_audio(clip, cache_dir=None):
                 return decode_audio(cache_file.read_bytes())
             except (OSError, ValueError) as error:
                 raise ValueError(f"Invalid cached audio {cache_file}: {error}. Cache left unchanged.") from error
+    if cached_only:
+        raise ValueError(f"Missing cached audio: {clip['audio_id']}. Downloads are disabled.")
     try:
         if clip["dataset"] == "train-other-500":
             recordings = load_audio_metadata(clip["dataset"], clip["speaker_id"])
@@ -230,7 +245,7 @@ def runtime_versions():
     return versions
 
 
-def checkpoint_metadata(input_file, output_file, model_name):
+def checkpoint_metadata(input_file, output_file, model_name, confidence=False):
     versions = runtime_versions()
     if versions["openai-whisper"] not in ("20250625", "unavailable"):
         raise ValueError("Recorded decoding defaults require openai-whisper 20250625. "
@@ -240,6 +255,8 @@ def checkpoint_metadata(input_file, output_file, model_name):
         "selection_sha256": hashlib.sha256(Path(input_file).read_bytes()).hexdigest(),
         "settings": dict(TRANSCRIPTION_SETTINGS), "normalization": NORMALIZATION, "versions": versions,
     }
+    if confidence:
+        expected["confidence"] = CONFIDENCE_METHOD
     metadata_file = Path(output_file).with_suffix(".metadata.json")
     if metadata_file.exists():
         saved = json.loads(metadata_file.read_text(encoding="utf-8"))
@@ -295,14 +312,29 @@ def seed_transcription(audio_id):
     return clip_seed
 
 
-def run_selection(input_file, output_file, limit=None, model_name=MODEL_NAME, audio_cache=None):
+def average_logprob(segments):
+    """Average the emitted segments by speech duration, not by segment count."""
+    weighted = duration = 0.0
+    for segment in segments:
+        start, end, value = (float(segment[key]) for key in ("start", "end", "avg_logprob"))
+        if not all(math.isfinite(number) for number in (start, end, value)) or start < 0 or end < start or value > 0:
+            raise ValueError("Invalid Whisper confidence segment.")
+        seconds = end - start
+        weighted += seconds * value
+        duration += seconds
+    # No speech segments means no score, rather than perfect confidence (zero).
+    return weighted / duration if duration else None
+
+
+def run_selection(input_file, output_file, limit=None, model_name=MODEL_NAME, audio_cache=None,
+                  confidence=False, model_cache=None, cached_only=False):
     if limit is not None and limit < 1:
         raise ValueError("--limit must be positive.")
     if model_name not in MODEL_CHOICES:
         raise ValueError(f"Unknown model: {model_name}")
     clips = read_selection(input_file)
-    completed = read_completed(output_file, clips)
-    metadata_file, expected_metadata = checkpoint_metadata(input_file, output_file, model_name)
+    completed = read_completed(output_file, clips, confidence)
+    metadata_file, expected_metadata = checkpoint_metadata(input_file, output_file, model_name, confidence)
     if limit is not None:
         clips = clips[:limit]
     pending = [clip for clip in clips if clip["audio_id"] not in completed]
@@ -310,7 +342,7 @@ def run_selection(input_file, output_file, limit=None, model_name=MODEL_NAME, au
     if not pending:
         return 0, 0
 
-    model = load_gpu_model(model_name)
+    model = load_gpu_model(model_name, model_cache, cached_only)
     save_checkpoint_metadata(metadata_file, expected_metadata, model)
     if audio_cache is None:
         audio_cache = Path(__file__).resolve().parent / "outputs" / "audio"
@@ -319,17 +351,19 @@ def run_selection(input_file, output_file, limit=None, model_name=MODEL_NAME, au
     needs_header = not output_file.exists() or output_file.stat().st_size == 0
     saved = failed = 0
     with output_file.open("a", encoding="utf-8", newline="") as destination:
-        writer = csv.DictWriter(destination, fieldnames=RESULT_COLUMNS)
+        writer = csv.DictWriter(destination, fieldnames=RESULT_COLUMNS + (["avg_logprob"] if confidence else []))
         if needs_header:
             writer.writeheader()
             destination.flush()
         for index, clip in enumerate(pending, start=1):
             try:
-                audio = fetch_audio(clip, audio_cache)
+                audio = fetch_audio(clip, audio_cache, cached_only=cached_only)
                 seed_transcription(clip["audio_id"])
                 started = perf_counter()
-                prediction = model.transcribe(audio, language="en", fp16=False)["text"]
+                result = model.transcribe(audio, language="en", fp16=False)
+                prediction = result["text"]
                 error_rate = score_transcription(clip["reference_text"], prediction)
+                logprob = average_logprob(result["segments"]) if confidence else None
                 seconds = perf_counter() - started
             except (OSError, ValueError, KeyError) as error:
                 if isinstance(error, HTTPError):
@@ -337,11 +371,14 @@ def run_selection(input_file, output_file, limit=None, model_name=MODEL_NAME, au
                 print(f"Failed {clip['audio_id']}: {error}", flush=True)
                 failed += 1
                 continue
-            writer.writerow({
+            row = {
                 "audio_id": clip["audio_id"], "speaker_id": clip["speaker_id"],
                 "reference_text": clip["reference_text"], "predicted_text": prediction,
                 "wer": error_rate,
-            })
+            }
+            if confidence:
+                row["avg_logprob"] = logprob
+            writer.writerow(row)
             destination.flush()
             saved += 1
             print(f"Clip {index}/{len(pending)} | {clip['audio_id']} | WER: {error_rate:.2%} | {seconds:.2f}s",
@@ -362,10 +399,15 @@ def main():
     parser.add_argument("--output", type=Path, help="results CSV; matching saved rows are resumed")
     parser.add_argument("--model", choices=MODEL_CHOICES, default=MODEL_NAME)
     parser.add_argument("--audio-cache", type=Path, help="shared selected-audio cache directory")
+    parser.add_argument("--confidence", action="store_true", help="include duration-weighted segment avg_logprob")
+    parser.add_argument("--model-cache", type=Path, help="directory containing cached Whisper weights")
+    parser.add_argument("--cached-only", action="store_true", help="require local audio and model weights; no downloads")
     args = parser.parse_args()
-    output_file = args.output or project_dir / "outputs" / f"{args.input.stem}_results_{args.model}.csv"
+    suffix = "_confidence" if args.confidence else ""
+    output_file = args.output or project_dir / "outputs" / f"{args.input.stem}_results_{args.model}{suffix}.csv"
     try:
-        _, failed = run_selection(args.input, output_file, args.limit, args.model, args.audio_cache)
+        _, failed = run_selection(args.input, output_file, args.limit, args.model, args.audio_cache,
+                                  args.confidence, args.model_cache, args.cached_only)
     except (OSError, ValueError, KeyError, csv.Error, RuntimeError, ImportError) as error:
         parser.exit(1, f"Error: {error}\n")
     if failed:
