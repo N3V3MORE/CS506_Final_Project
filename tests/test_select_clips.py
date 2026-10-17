@@ -7,8 +7,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
+from urllib.error import HTTPError
 
-from select_clips import load_clips, save_selection, select_clips
+from select_clips import (load_clips, save_selection, select_clips, load_speaker_metadata,
+                          request_metadata, select_fresh_clips, read_prior_ids, read_candidate_speakers)
 
 
 def sample_clips(counts):
@@ -92,6 +94,54 @@ class SelectionTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 save_selection(selected, output)
             self.assertEqual(output.read_bytes(), original)
+
+    def test_fresh_selection_excludes_history_and_is_reproducible(self):
+        def metadata(dataset, speaker):
+            self.assertEqual(dataset, "train-other-500")
+            return [{"id": row["audio_id"], "speaker_id": speaker, "chapter_id": "1",
+                     "text": row["reference_text"]}
+                    for row in sample_clips({speaker: 3 if speaker != "4" else 1})]
+        with patch("select_clips.load_speaker_metadata", side_effect=metadata) as load:
+            first = select_fresh_clips(["1", "2", "3", "4"], {"1"}, {"2-1-0000"}, 2, 2)
+            second = select_fresh_clips(["4", "3", "2", "1"], {"1"}, {"2-1-0000"}, 2, 2)
+        self.assertEqual(first, second)
+        self.assertEqual(Counter(row["speaker_id"] for row in first), {"2": 2, "3": 2})
+        self.assertNotIn("2-1-0000", {row["audio_id"] for row in first})
+        self.assertNotIn("1", [call.args[1] for call in load.call_args_list])
+        with tempfile.TemporaryDirectory() as directory:
+            history = Path(directory) / "old.json"
+            history.write_text(json.dumps({"clips": [{"id": "01-2-3", "speaker_id": "01"}]}))
+            self.assertEqual(read_prior_ids([history]), ({"1"}, {"01-2-3"}))
+            candidates = Path(directory) / "speakers.txt"
+            candidates.write_text("; metadata\n1 | F | dev-other | 1\n2 | M | train-other-500 | 2\n")
+            self.assertEqual(read_candidate_speakers(candidates), ["2"])
+
+    def test_speaker_queries_reject_partial_wrong_speakers_and_rate_limits(self):
+        page = {"partial": False, "num_rows_total": 1,
+                "rows": [{"row": {"id": "12-1-0000", "speaker_id": 12}}]}
+        with patch("select_clips.request_metadata", return_value=page) as request:
+            self.assertEqual(load_speaker_metadata("train-other-500", "12")[0]["id"], "12-1-0000")
+            query = parse_qs(urlparse(request.call_args.args[0]).query)
+            self.assertEqual(query["where"], ['"speaker_id"=12'])
+            self.assertEqual(query["split"], ["train.500"])
+        page["partial"] = True
+        with patch("select_clips.request_metadata", return_value=page):
+            with self.assertRaisesRegex(ValueError, "incomplete speaker"):
+                load_speaker_metadata("train-other-500", "12")
+        page["partial"] = False
+        with patch("select_clips.request_metadata", return_value=page):
+            with self.assertRaisesRegex(ValueError, "wrong speaker"):
+                load_speaker_metadata("train-other-500", "13")
+        rate_limit = HTTPError("https://example.invalid", 429, "rate limited", {"Retry-After": "120"}, None)
+        with patch("select_clips.urlopen", side_effect=rate_limit) as request, patch("select_clips.sleep") as sleep:
+            with self.assertRaisesRegex(RuntimeError, "Retry-After: 120"):
+                request_metadata("https://example.invalid")
+            self.assertEqual(request.call_count, 1)
+            sleep.assert_not_called()
+        with patch("select_clips.urlopen", side_effect=TimeoutError("timeout")) as request, patch("select_clips.sleep"):
+            with self.assertRaises(TimeoutError):
+                request_metadata("https://example.invalid")
+            self.assertEqual(request.call_count, 3)
 
 
 if __name__ == "__main__":
