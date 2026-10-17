@@ -1,14 +1,17 @@
-"""CPU-only check of whether sound proportions predict saved clip WER.
+"""CPU-only comparisons of word count, sound proportions, and CMUdict coverage.
 
 Install: python -m pip install -r requirements-analysis.txt
 Run: python evaluate_features.py [features.csv] [--output predictions.csv]
 
-Uses all 39 sound proportions with StandardScaler and Ridge(alpha=1.0).
-Both are fitted on training clips only. The baseline is that fold's training
-mean WER. Each clip is held out once. Several speakers use up to five grouped
+Compares the training mean, word count, and word count + phoneme proportions.
+Also tests word count + the share of reference words missing from CMUdict:
+(num_g2p_words + num_unresolved_words) / num_words.
+Models use StandardScaler and Ridge(alpha=1.0), fitted on training clips only.
+Each clip is held out once. Several speakers use up to five grouped
 folds; one speaker uses five shuffled clip folds with seed 42.
 Negative predictions become zero; WER above one is allowed. MSE is the primary
 score, with MAE also reported. This is a preliminary evaluation on saved data.
+Writes a new *_cmudict_predictions.csv under outputs/ by default.
 """
 
 import argparse
@@ -27,7 +30,13 @@ from analyze_features import read_features
 from build_features import PHONEMES
 
 
-FEATURE_COLUMNS = [f"{phone}_proportion" for phone in PHONEMES]
+PHONEME_COLUMNS = [f"{phone}_proportion" for phone in PHONEMES]
+PREDICTION_LABELS = (
+    ("baseline_prediction", "Training-average guess"),
+    ("word_count_prediction", "Word count"),
+    ("word_phoneme_prediction", "Word count + phonemes"),
+    ("word_cmudict_prediction", "Word count + CMUdict misses"),
+)
 
 
 def evaluate_clips(clips):
@@ -45,32 +54,57 @@ def evaluate_clips(clips):
         folds = splitter.split(clips)
         split_name = "single_speaker_clips"
 
-    features = [[clip[column] for column in FEATURE_COLUMNS] for clip in clips]
+    features = {
+        "word_count_prediction": [],
+        "word_phoneme_prediction": [],
+        "word_cmudict_prediction": [],
+    }
+    missing_proportions = []
+    for clip in clips:
+        try:
+            num_words = float(clip["num_words"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(f"{clip['audio_id']}: num_words must be a positive whole number") from error
+        if not math.isfinite(num_words) or num_words <= 0 or not num_words.is_integer():
+            raise ValueError(f"{clip['audio_id']}: num_words must be a positive whole number")
+        missing_words = clip["num_g2p_words"] + clip["num_unresolved_words"]
+        if missing_words > num_words:
+            raise ValueError(f"{clip['audio_id']}: CMUdict-missing word count exceeds num_words")
+        missing_proportion = missing_words / num_words
+        missing_proportions.append(missing_proportion)
+        features["word_count_prediction"].append([num_words])
+        features["word_phoneme_prediction"].append(
+            [num_words] + [clip[column] for column in PHONEME_COLUMNS]
+        )
+        features["word_cmudict_prediction"].append([num_words, missing_proportion])
     targets = [clip["wer"] for clip in clips]
     predictions = [None] * len(clips)
     for fold, (train, test) in enumerate(folds, start=1):
         training_mean = mean(targets[index] for index in train)
-        model = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
-        model.fit([features[index] for index in train], [targets[index] for index in train])
-        estimates = model.predict([features[index] for index in test])
-        for index, estimate in zip(test, estimates):
-            if not math.isfinite(estimate):
-                raise ValueError(f"{clips[index]['audio_id']}: non-finite model prediction")
+        for index in test:
             predictions[index] = {
                 "audio_id": clips[index]["audio_id"],
                 "speaker_id": speakers[index],
                 "split_strategy": split_name,
                 "fold": fold,
                 "actual_wer": targets[index],
+                "cmudict_missing_proportion": missing_proportions[index],
                 "baseline_prediction": training_mean,
-                "phoneme_prediction": max(0.0, float(estimate)),
             }
+        for column, values in features.items():
+            model = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
+            model.fit([values[index] for index in train], [targets[index] for index in train])
+            estimates = model.predict([values[index] for index in test])
+            for index, estimate in zip(test, estimates):
+                if not math.isfinite(estimate):
+                    raise ValueError(f"{clips[index]['audio_id']}: non-finite model prediction")
+                predictions[index][column] = max(0.0, float(estimate))
     return predictions
 
 
 def prediction_errors(predictions):
     scores = {}
-    for column in ("baseline_prediction", "phoneme_prediction"):
+    for column, _ in PREDICTION_LABELS:
         errors = [row[column] - row["actual_wer"] for row in predictions]
         scores[column] = {
             "mae": mean(abs(error) for error in errors),
@@ -103,7 +137,7 @@ def main():
     )
     parser.add_argument("--output", type=Path, help="new output CSV (existing files are refused)")
     args = parser.parse_args()
-    output_file = args.output or project_dir / "outputs" / f"{args.input.stem}_predictions.csv"
+    output_file = args.output or project_dir / "outputs" / f"{args.input.stem}_cmudict_predictions.csv"
     try:
         predictions, scores = evaluate_features(args.input, output_file)
     except (OSError, ValueError, csv.Error) as error:
@@ -112,29 +146,26 @@ def main():
     speakers = len({row["speaker_id"] for row in predictions})
     folds = len({row["fold"] for row in predictions})
     print(f"Clips: {len(predictions)} | Speakers: {speakers} | Folds: {folds}")
-    print(f"CPU | scikit-learn {sklearn_version} | 39 sound proportions | Ridge alpha=1.0")
+    print(f"CPU | scikit-learn {sklearn_version} | Ridge alpha=1.0")
     print(f"Split: {predictions[0]['split_strategy']}")
     if speakers == 1:
         print("One speaker: this checks held-out clips from that voice. More speakers are needed.")
     print("\nHeld-out scores (lower is better; MAE is average miss in percentage points):")
-    for column, label in [("baseline_prediction", "Training-average guess"),
-                          ("phoneme_prediction", "Phoneme model")]:
+    for column, label in PREDICTION_LABELS:
         score = scores[column]
         print(f"{label}: MAE={100 * score['mae']:.2f} points | MSE={score['mse']:.6f}")
 
-    baseline_mse = scores["baseline_prediction"]["mse"]
-    model_mse = scores["phoneme_prediction"]["mse"]
-    if baseline_mse == 0:
-        print("MSE improvement is undefined because the baseline error is zero.")
-    else:
-        improvement = 100 * (baseline_mse - model_mse) / baseline_mse
-        print(f"MSE improvement over the mean guess: {improvement:+.1f}%")
-    if math.isclose(model_mse, baseline_mse, rel_tol=1e-9, abs_tol=1e-12):
-        print("The phoneme model matched the mean guess on MSE.")
-    elif model_mse < baseline_mse:
-        print("The phoneme model beat the mean guess on MSE in this evaluation.")
-    else:
-        print("The phoneme model did worse than the mean guess on MSE in this evaluation.")
+    for column, reference, label in (
+        ("word_count_prediction", "baseline_prediction", "Word count over mean guess"),
+        ("word_phoneme_prediction", "word_count_prediction", "Adding phonemes to word count"),
+        ("word_cmudict_prediction", "word_count_prediction", "Adding CMUdict misses to word count"),
+    ):
+        reference_mse = scores[reference]["mse"]
+        if reference_mse == 0:
+            print(f"{label}: MSE improvement is undefined because the reference error is zero.")
+        else:
+            improvement = 100 * (reference_mse - scores[column]["mse"]) / reference_mse
+            print(f"{label}: {improvement:+.1f}% MSE improvement")
     print("Fixed model and folds; no tuning. These results are preliminary.")
     print(f"Saved each held-out prediction to {output_file}")
 
