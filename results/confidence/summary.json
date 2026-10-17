@@ -1,0 +1,71 @@
+{
+  "confirmation": {
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 507,
+    "ci95_percentage_points": [
+      0.6337892634123232,
+      1.1107984853106319
+    ],
+    "clips": 1000,
+    "clips_per_speaker": 25,
+    "excluded_prior_speakers": 185,
+    "relative_mae_gain_over_text_percent": 14.495198165106439,
+    "scores": {
+      "confidence_prediction": {
+        "mae": 0.05149998196812889,
+        "mae_percentage_points": 5.149998196812889,
+        "mse": 0.007034177761396605
+      },
+      "mean_prediction": {
+        "mae": 0.07196547680869894,
+        "mae_percentage_points": 7.1965476808698945,
+        "mse": 0.009832560412626815
+      },
+      "median_prediction": {
+        "mae": 0.05995763856776908,
+        "mae_percentage_points": 5.995763856776908,
+        "mse": 0.009764953534173774
+      },
+      "text_prediction": {
+        "mae": 0.0602305143839446,
+        "mae_percentage_points": 6.02305143839446,
+        "mse": 0.008237868873556542
+      }
+    },
+    "speakers": 40,
+    "speakers_improved": 34,
+    "text_minus_confidence_mae_percentage_points": 0.8730532415815707
+  },
+  "development": {
+    "clips": 3000,
+    "scores": {
+      "confidence_prediction": {
+        "mae": 0.06910269644663278,
+        "mae_percentage_points": 6.910269644663278,
+        "mse": 0.03783470830321072
+      },
+      "mean_prediction": {
+        "mae": 0.08581042289440292,
+        "mae_percentage_points": 8.581042289440292,
+        "mse": 0.04379219913234569
+      },
+      "median_prediction": {
+        "mae": 0.07830145614971723,
+        "mae_percentage_points": 7.830145614971723,
+        "mse": 0.04527036767435535
+      },
+      "text_prediction": {
+        "mae": 0.07827890329637303,
+        "mae_percentage_points": 7.827890329637303,
+        "mse": 0.039467802085048964
+      }
+    },
+    "speaker_folds": 5,
+    "speakers": 112
+  },
+  "device": "cuda:0",
+  "gpu": "NVIDIA GeForce RTX 5060 Ti",
+  "interpretation": "Saved confirmation on new speakers after fitting on the old 3,000 clips. Rescoring or refitting with these public files is a reproduction; these speakers are now seen.",
+  "model": "base.en",
+  "primary_metric": "MAE"
+}

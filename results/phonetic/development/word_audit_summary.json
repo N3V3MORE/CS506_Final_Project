@@ -1,0 +1,62 @@
+{
+  "eligible_clips": 726,
+  "word_rows": 13052,
+  "groups": {
+    "covered": {
+      "words": 12824,
+      "errors": 953,
+      "error_rate": 0.07431378665003119
+    },
+    "missing": {
+      "words": 228,
+      "errors": 165,
+      "error_rate": 0.7236842105263158
+    }
+  },
+  "speakers_with_both_groups": 30,
+  "speakers_with_higher_missing_word_error_rate": 30,
+  "unadjusted_word_error_rate_ratio": 9.73822278676755,
+  "top_missing_error_words": [
+    [
+      "lelechka",
+      8
+    ],
+    [
+      "admetus",
+      7
+    ],
+    [
+      "serafima",
+      6
+    ],
+    [
+      "aleksandrovna",
+      6
+    ],
+    [
+      "geraint",
+      4
+    ],
+    [
+      "mastership",
+      4
+    ],
+    [
+      "guenever",
+      4
+    ],
+    [
+      "kanti",
+      3
+    ],
+    [
+      "lakshman",
+      3
+    ],
+    [
+      "niccolo",
+      2
+    ]
+  ],
+  "interpretation": "Descriptive development audit, only unchanged-reference-token clips; not causal or a phoneme-error measurement."
+}

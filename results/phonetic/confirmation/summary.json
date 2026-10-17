@@ -1,0 +1,131 @@
+{
+  "across_models_positive": false,
+  "bootstrap_draws": 10000,
+  "bootstrap_seed": 506,
+  "clips": 2000,
+  "features": {
+    "path": "phonetic/confirmation/features.jsonl",
+    "sha256": "beedfa80e0c77c9381663731db00a50157115936d5d1c241b23c9ac7c4c4508b"
+  },
+  "freeze_sha256": "ed80a963dc664e0ac7c94ce864276d8b0bee463ddb524d0273fc5771ee709edd",
+  "frozen_manifest": {
+    "sha256": "2f6cc9946be892e8751d81153e99f0d1c48f88a110448d3723e61d2d6ddd139d"
+  },
+  "interpretation": "Bounds apply to the selected recipe, dataset and ASR models, not all phonetic information.",
+  "models": {
+    "base.en": {
+      "bonferroni_ci98_333333_percent": [
+        -0.20011363724083703,
+        14.827338235248899
+      ],
+      "ci95_percent": [
+        0.08195248245584409,
+        14.600614243557683
+      ],
+      "decision": "positive",
+      "relative_mse_gain_percent": 12.273510468905885,
+      "small_positive_gain": false,
+      "speaker_balanced_lexical_mae": 0.07189188178102195,
+      "speaker_balanced_lexical_mse": 0.03806384530763183,
+      "speaker_balanced_phonetic_mae": 0.07117855474082455,
+      "speaker_balanced_phonetic_mse": 0.033392075268931495,
+      "undefined_bootstrap_draws": 0
+    },
+    "small.en": {
+      "bonferroni_ci98_333333_percent": [
+        -0.8013500829619559,
+        3.129641239175647
+      ],
+      "ci95_percent": [
+        -0.6186896779027466,
+        3.0961397418016676
+      ],
+      "decision": "meaningful_gain_bounded_below_target",
+      "relative_mse_gain_percent": 2.700111256778578,
+      "small_positive_gain": false,
+      "speaker_balanced_lexical_mae": 0.05900726729552752,
+      "speaker_balanced_lexical_mse": 0.04055153341065409,
+      "speaker_balanced_phonetic_mae": 0.05894181312263828,
+      "speaker_balanced_phonetic_mse": 0.03945659689223669,
+      "undefined_bootstrap_draws": 0
+    },
+    "tiny.en": {
+      "bonferroni_ci98_333333_percent": [
+        -0.72307478145668,
+        11.132665608485608
+      ],
+      "ci95_percent": [
+        -0.5002611253467193,
+        10.930467752987473
+      ],
+      "decision": "inconclusive",
+      "relative_mse_gain_percent": 8.637942747439002,
+      "small_positive_gain": false,
+      "speaker_balanced_lexical_mae": 0.08546108281381956,
+      "speaker_balanced_lexical_mse": 0.044177951471082624,
+      "speaker_balanced_phonetic_mae": 0.08519705694558118,
+      "speaker_balanced_phonetic_mse": 0.04036188531601912,
+      "undefined_bootstrap_draws": 0
+    }
+  },
+  "resampling_unit": "whole speaker; identical paired draws across ASR models",
+  "results": {
+    "base.en": {
+      "metadata": {
+        "path": "phonetic/confirmation/base.en_results.metadata.json",
+        "sha256": "39f054c50349af30201e2e8c55f6af5521954d01aac7f004373caa6565b51841"
+      },
+      "normalization": "Whisper EnglishTextNormalizer; join internal alphabetic hyphens first",
+      "results": {
+        "path": "phonetic/confirmation/base.en_results.csv",
+        "sha256": "7a5d8d07d3dd898262a0bc1b96abf0911cce193b9c6273d78af07782a2e0fb9a"
+      },
+      "runtime_versions": {
+        "jiwer": "4.0.0",
+        "openai-whisper": "20250625",
+        "python": "3.11.9",
+        "torch": "2.11.0+cu128"
+      },
+      "selection_sha256": "d9ad7e2eafba30aacb30e1fc40b54e973b65bac76bb9349393c077d299c6dab2"
+    },
+    "small.en": {
+      "metadata": {
+        "path": "phonetic/confirmation/small.en_results.metadata.json",
+        "sha256": "75aab2ce32876ee3fcfb757596ab92b674f374d7380b2329ecbeb338df1951ff"
+      },
+      "normalization": "Whisper EnglishTextNormalizer; join internal alphabetic hyphens first",
+      "results": {
+        "path": "phonetic/confirmation/small.en_results.csv",
+        "sha256": "6ac4ee2113116290ffedb3a16f0ae870405048c96def2d9ebfa52d0a7be10cf9"
+      },
+      "runtime_versions": {
+        "jiwer": "4.0.0",
+        "openai-whisper": "20250625",
+        "python": "3.11.9",
+        "torch": "2.11.0+cu128"
+      },
+      "selection_sha256": "d9ad7e2eafba30aacb30e1fc40b54e973b65bac76bb9349393c077d299c6dab2"
+    },
+    "tiny.en": {
+      "metadata": {
+        "path": "phonetic/confirmation/tiny.en_results.metadata.json",
+        "sha256": "16625af3f5454067da461b76043c6c23ecd12096069f031bf7f115c8adfbb2db"
+      },
+      "normalization": "Whisper EnglishTextNormalizer; join internal alphabetic hyphens first",
+      "results": {
+        "path": "phonetic/confirmation/tiny.en_results.csv",
+        "sha256": "4dc21c73b220050e6c317c6342e4f5614b76adbca8e5f4adee6145ba47e30d2f"
+      },
+      "runtime_versions": {
+        "jiwer": "4.0.0",
+        "openai-whisper": "20250625",
+        "python": "3.11.9",
+        "torch": "2.11.0+cu128"
+      },
+      "selection_sha256": "d9ad7e2eafba30aacb30e1fc40b54e973b65bac76bb9349393c077d299c6dab2"
+    }
+  },
+  "selected_block": "stress",
+  "speakers": 80,
+  "stage": "confirmation"
+}

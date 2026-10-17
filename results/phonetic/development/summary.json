@@ -1,0 +1,277 @@
+{
+  "clips": 1000,
+  "models": {
+    "base.en": {
+      "outer_alphas": {
+        "bigrams": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "lexical": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "proportions": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "stress": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        }
+      },
+      "scores": {
+        "bigrams": {
+          "mae": 0.11050347739244831,
+          "mse": 0.027148381526901137,
+          "speaker_balanced_mae": 0.11042611305110239,
+          "speaker_balanced_mse": 0.027122806351120157
+        },
+        "lexical": {
+          "mae": 0.1059771024572047,
+          "mse": 0.02417785756720468,
+          "speaker_balanced_mae": 0.10590205944105938,
+          "speaker_balanced_mse": 0.02415203627656788
+        },
+        "mean": {
+          "mae": 0.11521194278714782,
+          "mse": 0.030052167603515614,
+          "speaker_balanced_mae": 0.11510683626962948,
+          "speaker_balanced_mse": 0.03001807343734646
+        },
+        "proportions": {
+          "mae": 0.1069421758054684,
+          "mse": 0.025740801309165385,
+          "speaker_balanced_mae": 0.10687727742577768,
+          "speaker_balanced_mse": 0.025719307491404605
+        },
+        "stress": {
+          "mae": 0.10559073212963851,
+          "mse": 0.024218499753542753,
+          "speaker_balanced_mae": 0.10551416770882355,
+          "speaker_balanced_mse": 0.024188979282641396
+        }
+      },
+      "unavailable_blocks": []
+    },
+    "small.en": {
+      "outer_alphas": {
+        "bigrams": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "lexical": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "proportions": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "stress": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        }
+      },
+      "scores": {
+        "bigrams": {
+          "mae": 0.08373538353761455,
+          "mse": 0.015765761448835958,
+          "speaker_balanced_mae": 0.08365047743502621,
+          "speaker_balanced_mse": 0.015713970332370198
+        },
+        "lexical": {
+          "mae": 0.08125649629474319,
+          "mse": 0.015030262854544169,
+          "speaker_balanced_mae": 0.08119439025362321,
+          "speaker_balanced_mse": 0.014989426785768131
+        },
+        "mean": {
+          "mae": 0.08907858771658267,
+          "mse": 0.01895247314657226,
+          "speaker_balanced_mae": 0.08897854136176983,
+          "speaker_balanced_mse": 0.018893196699080364
+        },
+        "proportions": {
+          "mae": 0.08256167707881637,
+          "mse": 0.01602792406329775,
+          "speaker_balanced_mae": 0.08248524448512214,
+          "speaker_balanced_mse": 0.015986703297651946
+        },
+        "stress": {
+          "mae": 0.08157269331586488,
+          "mse": 0.01547361253939036,
+          "speaker_balanced_mae": 0.08150797525812603,
+          "speaker_balanced_mse": 0.015430636162761118
+        }
+      },
+      "unavailable_blocks": []
+    },
+    "tiny.en": {
+      "outer_alphas": {
+        "bigrams": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "lexical": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "proportions": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        },
+        "stress": {
+          "1": 100.0,
+          "2": 100.0,
+          "3": 100.0,
+          "4": 100.0,
+          "5": 100.0
+        }
+      },
+      "scores": {
+        "bigrams": {
+          "mae": 0.12847767687849157,
+          "mse": 0.03487401971284243,
+          "speaker_balanced_mae": 0.1284146053085546,
+          "speaker_balanced_mse": 0.03484264517517135
+        },
+        "lexical": {
+          "mae": 0.126211167491957,
+          "mse": 0.032651359254754445,
+          "speaker_balanced_mae": 0.12616157529034888,
+          "speaker_balanced_mse": 0.032627041883911294
+        },
+        "mean": {
+          "mae": 0.13876145368799012,
+          "mse": 0.0414724230579315,
+          "speaker_balanced_mae": 0.1386644816486467,
+          "speaker_balanced_mse": 0.04142364409056357
+        },
+        "proportions": {
+          "mae": 0.12578263310055993,
+          "mse": 0.033652886244551455,
+          "speaker_balanced_mae": 0.12577365718088043,
+          "speaker_balanced_mse": 0.033635555384765266
+        },
+        "stress": {
+          "mae": 0.1261370995070552,
+          "mse": 0.0328853021202949,
+          "speaker_balanced_mae": 0.12608465062540727,
+          "speaker_balanced_mse": 0.03285821819441687
+        }
+      },
+      "unavailable_blocks": []
+    }
+  },
+  "selected_block": "stress",
+  "selection_metric": "Base.en outer-fold clip MSE",
+  "speakers": 32,
+  "spec": {
+    "alphas": [
+      1.0,
+      10.0,
+      100.0
+    ],
+    "bigram_max_features": 50,
+    "bigram_min_count": 50,
+    "bigram_min_speakers": 5,
+    "blocks": [
+      "proportions",
+      "bigrams",
+      "stress"
+    ],
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 506,
+    "confirmation_clips": 2000,
+    "confirmation_clips_per_speaker": 25,
+    "confirmation_speakers": 80,
+    "controls": [
+      "num_words",
+      "cmudict_missing_proportion",
+      "mean_word_length",
+      "training_word_rarity",
+      "inverse_normalized_num_words"
+    ],
+    "inner_folds": 3,
+    "outer_folds": 5,
+    "phonemes": [
+      "AA",
+      "AE",
+      "AH",
+      "AO",
+      "AW",
+      "AY",
+      "B",
+      "CH",
+      "D",
+      "DH",
+      "EH",
+      "ER",
+      "EY",
+      "F",
+      "G",
+      "HH",
+      "IH",
+      "IY",
+      "JH",
+      "K",
+      "L",
+      "M",
+      "N",
+      "NG",
+      "OW",
+      "OY",
+      "P",
+      "R",
+      "S",
+      "SH",
+      "T",
+      "TH",
+      "UH",
+      "UW",
+      "V",
+      "W",
+      "Y",
+      "Z",
+      "ZH"
+    ],
+    "practical_gain_percent": 5.0,
+    "version": 1
+  },
+  "stage": "development",
+  "status": "frozen_for_confirmation"
+}

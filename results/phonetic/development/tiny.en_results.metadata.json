@@ -1,0 +1,53 @@
+{
+  "model_name": "tiny.en",
+  "device": "cuda:0",
+  "selection_sha256": "725234a52daffd78fdf71b60a767ecde74581dc88cee3807c654aa0eecd1ac6f",
+  "settings": {
+    "language": "en",
+    "fp16": false,
+    "decoding_defaults_version": "20250625",
+    "decoding": {
+      "temperature": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "compression_ratio_threshold": 2.4,
+      "logprob_threshold": -1.0,
+      "no_speech_threshold": 0.6,
+      "condition_on_previous_text": true,
+      "initial_prompt": null,
+      "carry_initial_prompt": false,
+      "word_timestamps": false,
+      "clip_timestamps": "0",
+      "hallucination_silence_threshold": null,
+      "task": "transcribe",
+      "sample_len": null,
+      "best_of": null,
+      "beam_size": null,
+      "patience": null,
+      "length_penalty": null,
+      "prompt": null,
+      "prefix": null,
+      "suppress_tokens": "-1",
+      "suppress_blank": true,
+      "without_timestamps": false,
+      "max_initial_timestamp": 1.0
+    },
+    "seed": 506,
+    "seed_strategy": "(506 + big-endian first 4 SHA256 bytes of audio_id UTF-8) modulo 2**32"
+  },
+  "normalization": "Whisper EnglishTextNormalizer; join internal alphabetic hyphens first",
+  "versions": {
+    "python": "3.11.9",
+    "openai-whisper": "20250625",
+    "torch": "2.11.0+cu128",
+    "jiwer": "4.0.0"
+  },
+  "effective_device": "cuda:0",
+  "gpu_name": "NVIDIA GeForce RTX 5060 Ti",
+  "cuda_version": "12.8"
+}

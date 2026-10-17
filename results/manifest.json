@@ -1,0 +1,568 @@
+{
+  "artifacts": [
+    {
+      "bytes": 136342,
+      "columns": [
+        "dataset",
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "reference_text"
+      ],
+      "path": "phonetic/development/selection.csv",
+      "rows": 1000,
+      "sha256": "725234a52daffd78fdf71b60a767ecde74581dc88cee3807c654aa0eecd1ac6f",
+      "source_artifact": "phonetic-study/development/selection.csv",
+      "source_sha256": "725234a52daffd78fdf71b60a767ecde74581dc88cee3807c654aa0eecd1ac6f"
+    },
+    {
+      "bytes": 1636215,
+      "path": "phonetic/development/features.jsonl",
+      "rows": 1000,
+      "sha256": "31cf30ea9467e6066a239083b99ca4e72f09521e2c9875c1d57177e53acd9234",
+      "source_artifact": "phonetic-study/development/features.jsonl",
+      "source_sha256": "31cf30ea9467e6066a239083b99ca4e72f09521e2c9875c1d57177e53acd9234"
+    },
+    {
+      "bytes": 233822,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer"
+      ],
+      "path": "phonetic/development/tiny.en_results.csv",
+      "rows": 1000,
+      "sha256": "a7a7886efb90d4bd8220d4b517665c2230c0913c3fcb1b6c6b6a3b4cbd929db4",
+      "source_artifact": "phonetic-study/development/tiny.en_results.csv",
+      "source_sha256": "a7a7886efb90d4bd8220d4b517665c2230c0913c3fcb1b6c6b6a3b4cbd929db4"
+    },
+    {
+      "bytes": 1528,
+      "path": "phonetic/development/tiny.en_results.metadata.json",
+      "sha256": "55d2b7e6d6b665b2ffccefdff5cd95700593d70c506c217a72f7aab8a721ab9a",
+      "source_artifact": "phonetic-study/development/tiny.en_results.metadata.json",
+      "source_sha256": "55d2b7e6d6b665b2ffccefdff5cd95700593d70c506c217a72f7aab8a721ab9a"
+    },
+    {
+      "bytes": 141709,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "fold",
+        "actual_wer",
+        "mean_prediction",
+        "lexical_prediction",
+        "proportions_prediction",
+        "bigrams_prediction",
+        "stress_prediction"
+      ],
+      "path": "phonetic/development/tiny.en_development_predictions.csv",
+      "rows": 1000,
+      "sha256": "f209c0f44e00a4f6f236352f959dfb86d1c8d035357fad2a930595bfc9b0e89f",
+      "source_artifact": "phonetic-study/development/frozen/tiny.en_development_predictions.csv",
+      "source_sha256": "f209c0f44e00a4f6f236352f959dfb86d1c8d035357fad2a930595bfc9b0e89f"
+    },
+    {
+      "bytes": 234345,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer"
+      ],
+      "path": "phonetic/development/base.en_results.csv",
+      "rows": 1000,
+      "sha256": "c64f97e7b17f733d9875afb69bd45d3ecb4c86b76466707092e3943416d0810b",
+      "source_artifact": "phonetic-study/development/base.en_results.csv",
+      "source_sha256": "c64f97e7b17f733d9875afb69bd45d3ecb4c86b76466707092e3943416d0810b"
+    },
+    {
+      "bytes": 141980,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "fold",
+        "actual_wer",
+        "mean_prediction",
+        "lexical_prediction",
+        "proportions_prediction",
+        "bigrams_prediction",
+        "stress_prediction"
+      ],
+      "path": "phonetic/development/base.en_development_predictions.csv",
+      "rows": 1000,
+      "sha256": "dde69779e7838ffadf653976b6becabd5c678dbc0c864c0851f45e96eed5b74a",
+      "source_artifact": "phonetic-study/development/frozen/base.en_development_predictions.csv",
+      "source_sha256": "dde69779e7838ffadf653976b6becabd5c678dbc0c864c0851f45e96eed5b74a"
+    },
+    {
+      "bytes": 232792,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer"
+      ],
+      "path": "phonetic/development/small.en_results.csv",
+      "rows": 1000,
+      "sha256": "734fe2a6a292b8ae367a977f7414cca32af1b0e9360a1381dfe23108ddfa0f06",
+      "source_artifact": "phonetic-study/development/small.en_results.csv",
+      "source_sha256": "734fe2a6a292b8ae367a977f7414cca32af1b0e9360a1381dfe23108ddfa0f06"
+    },
+    {
+      "bytes": 1529,
+      "path": "phonetic/development/small.en_results.metadata.json",
+      "sha256": "c53670171afa82732b69fdd17380cb0c130cf040aeeb22c7f47b52483d900ac6",
+      "source_artifact": "phonetic-study/development/small.en_results.metadata.json",
+      "source_sha256": "c53670171afa82732b69fdd17380cb0c130cf040aeeb22c7f47b52483d900ac6"
+    },
+    {
+      "bytes": 140895,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "fold",
+        "actual_wer",
+        "mean_prediction",
+        "lexical_prediction",
+        "proportions_prediction",
+        "bigrams_prediction",
+        "stress_prediction"
+      ],
+      "path": "phonetic/development/small.en_development_predictions.csv",
+      "rows": 1000,
+      "sha256": "d83aa51d1db22d7434989d8596d09f283d1d594c8fd3e4bb8a59bff863210340",
+      "source_artifact": "phonetic-study/development/frozen/small.en_development_predictions.csv",
+      "source_sha256": "d83aa51d1db22d7434989d8596d09f283d1d594c8fd3e4bb8a59bff863210340"
+    },
+    {
+      "bytes": 6658,
+      "changes": "Local path fields replaced with results-relative paths; paths to unbundled files omitted. Numeric results unchanged.",
+      "path": "phonetic/development/summary.json",
+      "sha256": "c02acc4fe77f3edd3d99de5ff410a887d25886ccd3f616b1b485767f2110cd25",
+      "source_artifact": "phonetic-study/development/frozen/summary.json",
+      "source_sha256": "748cbf4e3737eb42adbe3824897911e24052bac352049aa80d37200a60cfe035"
+    },
+    {
+      "bytes": 437000,
+      "columns": [
+        "dataset",
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "reference_text"
+      ],
+      "path": "phonetic/confirmation/selection.csv",
+      "rows": 2000,
+      "sha256": "d9ad7e2eafba30aacb30e1fc40b54e973b65bac76bb9349393c077d299c6dab2",
+      "source_artifact": "phonetic-study/fresh/selection.csv",
+      "source_sha256": "d9ad7e2eafba30aacb30e1fc40b54e973b65bac76bb9349393c077d299c6dab2"
+    },
+    {
+      "bytes": 4434138,
+      "path": "phonetic/confirmation/features.jsonl",
+      "rows": 2000,
+      "sha256": "beedfa80e0c77c9381663731db00a50157115936d5d1c241b23c9ac7c4c4508b",
+      "source_artifact": "phonetic-study/fresh/features.jsonl",
+      "source_sha256": "beedfa80e0c77c9381663731db00a50157115936d5d1c241b23c9ac7c4c4508b"
+    },
+    {
+      "bytes": 780625,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer"
+      ],
+      "path": "phonetic/confirmation/tiny.en_results.csv",
+      "rows": 2000,
+      "sha256": "4dc21c73b220050e6c317c6342e4f5614b76adbca8e5f4adee6145ba47e30d2f",
+      "source_artifact": "phonetic-study/fresh/tiny.en_results.csv",
+      "source_sha256": "4dc21c73b220050e6c317c6342e4f5614b76adbca8e5f4adee6145ba47e30d2f"
+    },
+    {
+      "bytes": 1528,
+      "path": "phonetic/confirmation/tiny.en_results.metadata.json",
+      "sha256": "16625af3f5454067da461b76043c6c23ecd12096069f031bf7f115c8adfbb2db",
+      "source_artifact": "phonetic-study/fresh/tiny.en_results.metadata.json",
+      "source_sha256": "16625af3f5454067da461b76043c6c23ecd12096069f031bf7f115c8adfbb2db"
+    },
+    {
+      "bytes": 204372,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "lexical_prediction",
+        "phonetic_prediction",
+        "mean_prediction",
+        "actual_wer"
+      ],
+      "path": "phonetic/confirmation/tiny.en_confirmation_predictions.csv",
+      "rows": 2000,
+      "sha256": "da3c1d1bf646b96011289239ee3ef250a1cf52297fcb94e8c0baaefa7af99b92",
+      "source_artifact": "phonetic-study/fresh/evaluation/tiny.en_confirmation_predictions.csv",
+      "source_sha256": "da3c1d1bf646b96011289239ee3ef250a1cf52297fcb94e8c0baaefa7af99b92"
+    },
+    {
+      "bytes": 780021,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer"
+      ],
+      "path": "phonetic/confirmation/base.en_results.csv",
+      "rows": 2000,
+      "sha256": "7a5d8d07d3dd898262a0bc1b96abf0911cce193b9c6273d78af07782a2e0fb9a",
+      "source_artifact": "phonetic-study/fresh/base.en_results.csv",
+      "source_sha256": "7a5d8d07d3dd898262a0bc1b96abf0911cce193b9c6273d78af07782a2e0fb9a"
+    },
+    {
+      "bytes": 1528,
+      "path": "phonetic/confirmation/base.en_results.metadata.json",
+      "sha256": "39f054c50349af30201e2e8c55f6af5521954d01aac7f004373caa6565b51841",
+      "source_artifact": "phonetic-study/fresh/base.en_results.metadata.json",
+      "source_sha256": "39f054c50349af30201e2e8c55f6af5521954d01aac7f004373caa6565b51841"
+    },
+    {
+      "bytes": 205202,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "lexical_prediction",
+        "phonetic_prediction",
+        "mean_prediction",
+        "actual_wer"
+      ],
+      "path": "phonetic/confirmation/base.en_confirmation_predictions.csv",
+      "rows": 2000,
+      "sha256": "8a25115cdd58ad976e75abd2784ed577272b4e7ce9d4bcd64ad36740d3d32ad6",
+      "source_artifact": "phonetic-study/fresh/evaluation/base.en_confirmation_predictions.csv",
+      "source_sha256": "8a25115cdd58ad976e75abd2784ed577272b4e7ce9d4bcd64ad36740d3d32ad6"
+    },
+    {
+      "bytes": 779033,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer"
+      ],
+      "path": "phonetic/confirmation/small.en_results.csv",
+      "rows": 2000,
+      "sha256": "6ac4ee2113116290ffedb3a16f0ae870405048c96def2d9ebfa52d0a7be10cf9",
+      "source_artifact": "phonetic-study/fresh/small.en_results.csv",
+      "source_sha256": "6ac4ee2113116290ffedb3a16f0ae870405048c96def2d9ebfa52d0a7be10cf9"
+    },
+    {
+      "bytes": 1529,
+      "path": "phonetic/confirmation/small.en_results.metadata.json",
+      "sha256": "75aab2ce32876ee3fcfb757596ab92b674f374d7380b2329ecbeb338df1951ff",
+      "source_artifact": "phonetic-study/fresh/small.en_results.metadata.json",
+      "source_sha256": "75aab2ce32876ee3fcfb757596ab92b674f374d7380b2329ecbeb338df1951ff"
+    },
+    {
+      "bytes": 200782,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "lexical_prediction",
+        "phonetic_prediction",
+        "mean_prediction",
+        "actual_wer"
+      ],
+      "path": "phonetic/confirmation/small.en_confirmation_predictions.csv",
+      "rows": 2000,
+      "sha256": "3372b5a3a2733dfdd7437650d565a39d31dc366a5ebf4bcd3cd01e91efdfe677",
+      "source_artifact": "phonetic-study/fresh/evaluation/small.en_confirmation_predictions.csv",
+      "source_sha256": "3372b5a3a2733dfdd7437650d565a39d31dc366a5ebf4bcd3cd01e91efdfe677"
+    },
+    {
+      "bytes": 4845,
+      "changes": "Local path fields replaced with results-relative paths; paths to unbundled files omitted. Numeric results unchanged.",
+      "path": "phonetic/confirmation/summary.json",
+      "sha256": "83bf2439bdb1a44bdc0766a58462745d1d9260543d53e2923076fd9e358f3bc2",
+      "source_artifact": "phonetic-study/fresh/evaluation/summary.json",
+      "source_sha256": "3dac150e71753891b787a9642428bcbc41006333153ee2de4e679d865383d8df"
+    },
+    {
+      "bytes": 157808,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "split_strategy",
+        "fold",
+        "actual_wer",
+        "cmudict_missing_proportion",
+        "baseline_prediction",
+        "word_count_prediction",
+        "word_phoneme_prediction",
+        "word_cmudict_prediction",
+        "word_cmudict_phoneme_prediction"
+      ],
+      "path": "phonetic/development/folds.csv",
+      "rows": 1000,
+      "sha256": "537c13900c224d5502d828480416f867fab6f1edef659069da0182da55edd63e",
+      "source_artifact": "phonetic-study/development/folds.csv",
+      "source_sha256": "537c13900c224d5502d828480416f867fab6f1edef659069da0182da55edd63e"
+    },
+    {
+      "bytes": 1871053,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "word_index",
+        "reference_word",
+        "cmudict_missing",
+        "error_type",
+        "predicted_words",
+        "alignment_scope",
+        "reference_span",
+        "wer"
+      ],
+      "path": "phonetic/development/word_errors.csv",
+      "rows": 13052,
+      "sha256": "d2f2d79c43e16812f4ac40eed5c7661ec84e6dbad6c2aebf2777c5f8ac99dbc3",
+      "source_artifact": "phonetic-study/development/word_errors.csv",
+      "source_sha256": "d2f2d79c43e16812f4ac40eed5c7661ec84e6dbad6c2aebf2777c5f8ac99dbc3"
+    },
+    {
+      "bytes": 1045,
+      "path": "phonetic/development/word_audit_summary.json",
+      "sha256": "157a36467f82ce842665ec2b3eadf4efb3f9a6145dc69ecdf73d305ba6e31bdf",
+      "source_artifact": "phonetic-study/development/word_audit_summary.json",
+      "source_sha256": "157a36467f82ce842665ec2b3eadf4efb3f9a6145dc69ecdf73d305ba6e31bdf"
+    },
+    {
+      "bytes": 47217,
+      "columns": [
+        "dataset",
+        "audio_id",
+        "speaker_id"
+      ],
+      "path": "phonetic/confirmation/historical_ids.csv",
+      "rows": 1448,
+      "sha256": "0715c4cdecf08bda7ba05707c3355486bee2437b4be8516935b74d31e77abccb",
+      "source_artifact": "phonetic-study/historical_ids.csv",
+      "source_sha256": "0715c4cdecf08bda7ba05707c3355486bee2437b4be8516935b74d31e77abccb"
+    },
+    {
+      "bytes": 254708,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer",
+        "avg_logprob"
+      ],
+      "path": "confidence/development_1000.csv",
+      "rows": 1000,
+      "sha256": "5bc5de2260de81714c5c8cdfd7ad72352526914c87001fc1db1347e2e278f02e",
+      "source_artifact": "base-confidence/development_base.en_confidence.csv",
+      "source_sha256": "5bc5de2260de81714c5c8cdfd7ad72352526914c87001fc1db1347e2e278f02e"
+    },
+    {
+      "bytes": 1586,
+      "path": "confidence/development_1000.metadata.json",
+      "sha256": "cc870323aa5c6969b6dde7d9161a2bdb6951099b776de90a2a049c8c77280cac",
+      "source_artifact": "base-confidence/development_base.en_confidence.metadata.json",
+      "source_sha256": "cc870323aa5c6969b6dde7d9161a2bdb6951099b776de90a2a049c8c77280cac"
+    },
+    {
+      "bytes": 820975,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer",
+        "avg_logprob"
+      ],
+      "path": "confidence/development_2000.csv",
+      "rows": 2000,
+      "sha256": "f5d22480362fc452706b44a683b43b43e2bef21e4c159356ad43b94eb3107020",
+      "source_artifact": "base-confidence/fresh_base.en_confidence.csv",
+      "source_sha256": "f5d22480362fc452706b44a683b43b43e2bef21e4c159356ad43b94eb3107020"
+    },
+    {
+      "bytes": 1586,
+      "path": "confidence/development_2000.metadata.json",
+      "sha256": "c3959b16be64923f719276ea89e704fcdbf41e097db392887125ba3c6ad05a92",
+      "source_artifact": "base-confidence/fresh_base.en_confidence.metadata.json",
+      "source_sha256": "c3959b16be64923f719276ea89e704fcdbf41e097db392887125ba3c6ad05a92"
+    },
+    {
+      "bytes": 351075,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "fold",
+        "actual_wer",
+        "mean_prediction",
+        "median_prediction",
+        "text_prediction",
+        "confidence_prediction"
+      ],
+      "path": "confidence/development_predictions.csv",
+      "rows": 3000,
+      "sha256": "ce1f21d0e8b731036de12ba29544f0003849e795de9d1a5ef50bebcd7d954b4f",
+      "source_artifact": "base-confidence/predictions.csv",
+      "source_sha256": "ce1f21d0e8b731036de12ba29544f0003849e795de9d1a5ef50bebcd7d954b4f"
+    },
+    {
+      "bytes": 416828,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "reference_text",
+        "predicted_text",
+        "wer",
+        "avg_logprob"
+      ],
+      "path": "confidence/confirmation_1000.csv",
+      "rows": 1000,
+      "sha256": "a0b47d20e7dca0f510403dbc2f1e5d44b35606e0f2289f975abf37d719ea1f80",
+      "source_artifact": "base-confidence/confirmation_1000/base.en_confidence.csv",
+      "source_sha256": "a0b47d20e7dca0f510403dbc2f1e5d44b35606e0f2289f975abf37d719ea1f80"
+    },
+    {
+      "bytes": 1586,
+      "path": "confidence/confirmation_1000.metadata.json",
+      "sha256": "9414466c9977a11667ab93aa586a993122e680af4774b59ea3174e5df9da6ab2",
+      "source_artifact": "base-confidence/confirmation_1000/base.en_confidence.metadata.json",
+      "source_sha256": "9414466c9977a11667ab93aa586a993122e680af4774b59ea3174e5df9da6ab2"
+    },
+    {
+      "bytes": 116027,
+      "columns": [
+        "audio_id",
+        "speaker_id",
+        "mean_prediction",
+        "median_prediction",
+        "confidence_prediction",
+        "text_prediction",
+        "actual_wer"
+      ],
+      "path": "confidence/confirmation_predictions.csv",
+      "rows": 1000,
+      "sha256": "bdebc00c23eaaf56d1f5f9a0273bf9b63fbf07a8b796f7691fef04d116046d7d",
+      "source_artifact": "base-confidence/confirmation_1000/predictions.csv",
+      "source_sha256": "bdebc00c23eaaf56d1f5f9a0273bf9b63fbf07a8b796f7691fef04d116046d7d"
+    },
+    {
+      "bytes": 221148,
+      "columns": [
+        "dataset",
+        "audio_id",
+        "speaker_id",
+        "chapter_id",
+        "reference_text"
+      ],
+      "path": "confidence/confirmation_selection.csv",
+      "rows": 1000,
+      "sha256": "57609ea2eb3d934970c98d2ed32d59bcdff7bfd54ed881b75759abd05afc0d1e",
+      "source_artifact": "base-confidence/confirmation_1000/selection.csv",
+      "source_sha256": "57609ea2eb3d934970c98d2ed32d59bcdff7bfd54ed881b75759abd05afc0d1e"
+    },
+    {
+      "bytes": 123684,
+      "columns": [
+        "dataset",
+        "audio_id",
+        "speaker_id"
+      ],
+      "path": "confidence/historical_ids.csv",
+      "rows": 3448,
+      "sha256": "9f35b51d122f77e91ed77135c71acf0e75a7f6d976f25230495b194e7556b1a9",
+      "source_artifact": "base-confidence/confirmation_1000/historical_ids.csv",
+      "source_sha256": "9f35b51d122f77e91ed77135c71acf0e75a7f6d976f25230495b194e7556b1a9"
+    },
+    {
+      "bytes": 2236,
+      "derived_from": [
+        "confidence/development_predictions.csv",
+        "confidence/confirmation_predictions.csv"
+      ],
+      "method": "Saved prediction errors; paired whole-speaker bootstrap with 10,000 draws and seed 507.",
+      "path": "confidence/summary.json",
+      "sha256": "f7996c9f304417a35cc44fcd9e216e5b4dfb80d2717e55d9206d58825db8f23b"
+    }
+  ],
+  "dataset": "openslr/librispeech_asr",
+  "dataset_license": "CC BY 4.0",
+  "dataset_revision": "71cacbfb7e2354c4226d01e70d77d5fca3d04ba1",
+  "dataset_source": "https://www.openslr.org/12/",
+  "notes": [
+    "Phonetic features use reference text; confidence features use recognized text.",
+    "Phonetic development Base has no metadata sidecar; none was fabricated.",
+    "The two development Base runs differ on two transcripts and two WER values. Keep their targets separate.",
+    "Absolute local paths in copied phonetic summaries were removed or mapped to results-relative paths.",
+    "No audio, downloaded Whisper weights, caches, Parquet indexes or frozen model state is included."
+  ],
+  "original_code_commits": {
+    "confidence_confirmation": "d3cf828d44464701a6427fe0dc150a035299be15",
+    "phonetic_study": "87d53bb9f6c1e499e6afbca98a9d66af82331142"
+  },
+  "original_confidence_freeze": {
+    "created_utc": "2026-10-17T18:50:49.319113+00:00",
+    "file_sha256": "8b5b2b42fbc65bbb9f3f5b558cc86381a42ab4445786c02f84f4f03ad0019809",
+    "included": false,
+    "internal_digest": "156737d8078541350ac51b89703cb0c2c35a5beb7c58e0dd39dd11fb40d2da8a",
+    "reason": "Historical manifest contains workstation paths and binds the original source. Saved data can be replayed with the current scripts without changing that manifest."
+  },
+  "phoneme_order": [
+    "AA",
+    "AE",
+    "AH",
+    "AO",
+    "AW",
+    "AY",
+    "B",
+    "CH",
+    "D",
+    "DH",
+    "EH",
+    "ER",
+    "EY",
+    "F",
+    "G",
+    "HH",
+    "IH",
+    "IY",
+    "JH",
+    "K",
+    "L",
+    "M",
+    "N",
+    "NG",
+    "OW",
+    "OY",
+    "P",
+    "R",
+    "S",
+    "SH",
+    "T",
+    "TH",
+    "UH",
+    "UW",
+    "V",
+    "W",
+    "Y",
+    "Z",
+    "ZH"
+  ]
+}
